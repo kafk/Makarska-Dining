@@ -1,0 +1,32 @@
+{
+  "name": "makarska-dining",
+  "version": "1.0.0",
+  "description": "Restaurant tracker app for Makarska, Croatia",
+  "main": "index.js",
+  "scripts": {
+    "build": "cp src/index.html dist/index.html",
+    "cap:init": "npx cap init 'Makarska Dining' com.makarska.dining",
+    "cap:add:ios": "npx cap add ios",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android"
+  },
+  "keywords": [
+    "makarska",
+    "restaurant",
+    "dining",
+    "croatia",
+    "food"
+  ],
+  "author": "Darko",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

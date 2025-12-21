@@ -1,0 +1,28 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.makarska.dining',
+  appName: 'Makarska Dining',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https'
+  },
+  ios: {
+    contentInset: 'automatic',
+    preferredContentMode: 'mobile',
+    scheme: 'Makarska Dining'
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: '#ffffff',
+      showSpinner: false
+    },
+    StatusBar: {
+      style: 'dark',
+      backgroundColor: '#ffffff'
+    }
+  }
+};
+
+export default config;
