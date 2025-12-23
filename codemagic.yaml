@@ -25,6 +25,7 @@ workflows:
       
       - name: Build web app
         script: |
+          mkdir -p dist
           npm run build
       
       - name: Install Capacitor and sync
@@ -90,6 +91,7 @@ workflows:
       
       - name: Build web app
         script: |
+          mkdir -p dist
           npm run build
       
       - name: Install Capacitor and sync
