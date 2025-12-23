@@ -36,6 +36,12 @@ workflows:
         script: |
           npx cap sync ios
       
+      - name: Set up app icons
+        script: |
+          # Copy app icons from repo to iOS assets
+          cp -r assets/AppIcon.appiconset ios/App/App/Assets.xcassets/AppIcon.appiconset
+          echo "✅ App icons installed"
+      
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install
