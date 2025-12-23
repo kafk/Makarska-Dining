@@ -28,7 +28,11 @@ workflows:
           mkdir -p dist
           npm run build
       
-      - name: Install Capacitor and sync
+      - name: Add iOS platform
+        script: |
+          npx cap add ios || true
+      
+      - name: Sync Capacitor
         script: |
           npx cap sync ios
       
@@ -94,7 +98,11 @@ workflows:
           mkdir -p dist
           npm run build
       
-      - name: Install Capacitor and sync
+      - name: Add Android platform
+        script: |
+          npx cap add android || true
+      
+      - name: Sync Capacitor
         script: |
           npx cap sync android
       
