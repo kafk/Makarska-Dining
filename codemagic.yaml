@@ -4,9 +4,6 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     
-    integrations:
-      app_store_connect: Codemagic-Makarska-Dining
-    
     environment:
       ios_signing:
         distribution_type: app_store
@@ -25,26 +22,26 @@ workflows:
       
       - name: Build web app
         script: |
-          mkdir -p dist
-          cp src/index.html dist/index.html
+          npm run build
       
-      - name: Add iOS platform
-        script: |
-          npx cap add ios || true
-      
-      - name: Sync Capacitor
+      - name: Install Capacitor and sync
         script: |
           npx cap sync ios
       
       - name: Set up app icons
         script: |
-          # Copy app icons from repo to iOS assets
-          cp -r assets/AppIcon.appiconset ios/App/App/Assets.xcassets/AppIcon.appiconset
+          cp -r assets/AppIcon.appiconset/* ios/App/App/Assets.xcassets/AppIcon.appiconset/
           echo "✅ App icons installed"
       
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install
+      
+      - name: Increment build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $(date +%Y%m%d%H%M%S)
+          echo "✅ Build number set to $(agvtool what-version -terse)"
       
       - name: Set up code signing
         script: |
@@ -59,8 +56,53 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
     
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        beta_groups:
+          - Beta Testers
+
+  android-workflow:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    
+    environment:
+      android_signing:
+        - keystore_reference
+      groups:
+        - google_play
+      vars:
+        PACKAGE_NAME: "com.makarska.dining"
+      node: 18
+      java: 17
+    
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm install
+      
+      - name: Build web app
+        script: |
+          npm run build
+      
+      - name: Install Capacitor and sync
+        script: |
+          npx cap sync android
+      
+      - name: Build Android APK/AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/*.apk
+    
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
