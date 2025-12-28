@@ -8802,7 +8802,7 @@
                     iconSize = [70, 70];
                     iconAnchor = [35, 66];
                 } else {
-                    // === FLOAT CARD STYLE (default) ===
+                    // === FLOAT CARD STYLE (default) - Light theme, no border ===
                     if (!showRating && !showPrice) {
                         // Default: Icon + name (white background)
                         const shortName = restaurant.name.length > 10 ? restaurant.name.substring(0, 9) + '…' : restaurant.name;
@@ -8811,23 +8811,23 @@
                             <span style="font-size: 12px; font-weight: 700; color: #2d3436;">${shortName}</span>
                         </div>`;
                     } else if (showRating && !showPrice) {
-                        // Rating filter active: Dark theme + icon + rating stars
-                        iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid #fbbf24;">
-                            <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
-                            <span style="color: #fbbf24; font-size: 11px; font-weight: 600; letter-spacing: -0.5px;">${ratingStars}</span>
+                        // Rating filter active: Light theme + icon + rating stars
+                        iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
+                            <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
+                            <span style="color: #f59e0b; font-size: 13px; font-weight: 700;">${ratingStars}</span>
                         </div>`;
                     } else if (!showRating && showPrice) {
-                        // Price filter active: Dark theme + icon + price
-                        iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid ${priceColor};">
-                            <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
+                        // Price filter active: Light theme + icon + price
+                        iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
+                            <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
                             <span style="color: ${priceColor}; font-size: 13px; font-weight: 700;">${priceSymbol}</span>
                         </div>`;
                     } else {
-                        // Both filters active: Dark theme + icon + rating + price stacked
-                        iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid #d4a853;">
-                            <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
-                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
-                                <span style="color: #fbbf24; font-size: 9px; font-weight: 600; letter-spacing: -0.5px;">${ratingStars}</span>
+                        // Both filters active: Light theme + icon + rating + price stacked
+                        iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
+                            <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px;">
+                                <span style="color: #f59e0b; font-size: 10px; font-weight: 700;">${ratingStars}</span>
                                 <span style="color: ${priceColor}; font-size: 11px; font-weight: 700;">${priceSymbol}</span>
                             </div>
                         </div>`;
