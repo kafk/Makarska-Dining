@@ -8883,6 +8883,20 @@
                 const restaurantType = r.mainCategory || 'restaurant';
                 const typeMatch = filterMainCategory === 'all' || restaurantType === filterMainCategory;
 
+                // Subcategory match (e.g., Seafood within Restaurant)
+                let subcategoryMatch = true;
+                if (filterSubcategory !== 'all' && filterMainCategory !== 'all') {
+                    // Check if restaurant has dishes with this subcategory
+                    if (r.foodItems && r.foodItems.length > 0) {
+                        subcategoryMatch = r.foodItems.some(item => item.subcategory === filterSubcategory);
+                    } else if (r.cuisine) {
+                        // Fallback: check cuisine field
+                        subcategoryMatch = r.cuisine.toLowerCase().includes(filterSubcategory.toLowerCase());
+                    } else {
+                        subcategoryMatch = false;
+                    }
+                }
+
                 // Rating match (empty = show all)
                 const avgRating = Math.round(((r.foodRating || 0) + (r.serviceRating || 0)) / 2) || 0;
                 const ratingMatch = selectedRatings.length === 0 || selectedRatings.includes(avgRating);
@@ -8890,7 +8904,7 @@
                 // Price match (empty = show all)
                 const priceMatch = selectedPrices.length === 0 || selectedPrices.includes(r.price);
 
-                return typeMatch && ratingMatch && priceMatch;
+                return typeMatch && subcategoryMatch && ratingMatch && priceMatch;
             });
         }
 
