@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Makarska Dining v2.2.0</title>
+    <title>Makarska Dining v2.3.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
@@ -4762,7 +4762,7 @@
         <div class="empty-header">
             <div class="empty-header-top">
                 <div class="empty-title">My Groups</div>
-                <span class="header-version">v2.2.0</span>
+                <span class="header-version">v2.3.0</span>
             </div>
             <div class="empty-subtitle">No groups yet</div>
         </div>
@@ -4852,7 +4852,7 @@
         <div class="groups-header">
             <div class="groups-header-top">
                 <div class="groups-title">My Groups</div>
-                <span class="header-version">v2.2.0</span>
+                <span class="header-version">v2.3.0</span>
             </div>
             <div class="groups-subtitle" id="groupsSubtitle">All your groups</div>
         </div>
@@ -4931,7 +4931,8 @@
                 <input type="text" id="searchInput" placeholder="🔍 Search restaurants, cuisine, or notes..." autocomplete="off">
                 <div class="search-dropdown" id="searchDropdown"></div>
             </div>
-            <span class="header-version">v2.2.0</span>
+            <span id="syncStatus" style="font-size: 10px; margin-right: 8px;">☁️</span>
+            <span class="header-version">v2.3.0</span>
             <button class="menu-btn" onclick="openFilterModal()">☰</button>
         </div>
     </div>
@@ -5151,7 +5152,7 @@
                 <div class="restaurants-header-title">
                     <span class="restaurants-header-icon">⚙️</span>
                     <span class="restaurants-header-name">Settings</span>
-                    <span class="restaurants-version">v2.2.0</span>
+                    <span class="restaurants-version">v2.3.0</span>
                 </div>
             </div>
         </div>
@@ -5827,6 +5828,158 @@
     </div>
 
     </div><!-- END MAIN APP -->
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFAWge9ldMBE_ToKDBwn6_T1G1ZrBeQgY",
+            authDomain: "makarsk-dining.firebaseapp.com",
+            projectId: "makarsk-dining",
+            storageBucket: "makarsk-dining.firebasestorage.app",
+            messagingSenderId: "573489897014",
+            appId: "1:573489897014:web:25889f1f530a70badd8297",
+            measurementId: "G-1S9NFBM9D3"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Firestore helper functions
+        async function saveRestaurantsToFirestore(restaurantsData) {
+            try {
+                const batch = db.batch();
+
+                // Save each restaurant as a document
+                restaurantsData.forEach(restaurant => {
+                    const docRef = db.collection('restaurants').doc(String(restaurant.id));
+                    batch.set(docRef, restaurant);
+                });
+
+                await batch.commit();
+                console.log('Restaurants saved to Firestore');
+                return true;
+            } catch (error) {
+                console.error('Error saving to Firestore:', error);
+                return false;
+            }
+        }
+
+        async function loadRestaurantsFromFirestore() {
+            try {
+                const snapshot = await db.collection('restaurants').get();
+                if (snapshot.empty) {
+                    console.log('No restaurants in Firestore');
+                    return null;
+                }
+
+                const restaurantsData = [];
+                snapshot.forEach(doc => {
+                    restaurantsData.push(doc.data());
+                });
+
+                console.log('Loaded', restaurantsData.length, 'restaurants from Firestore');
+                return restaurantsData;
+            } catch (error) {
+                console.error('Error loading from Firestore:', error);
+                return null;
+            }
+        }
+
+        async function saveRestaurantToFirestore(restaurant) {
+            try {
+                await db.collection('restaurants').doc(String(restaurant.id)).set(restaurant);
+                console.log('Restaurant saved:', restaurant.name);
+                return true;
+            } catch (error) {
+                console.error('Error saving restaurant:', error);
+                return false;
+            }
+        }
+
+        async function deleteRestaurantFromFirestore(restaurantId) {
+            try {
+                await db.collection('restaurants').doc(String(restaurantId)).delete();
+                console.log('Restaurant deleted from Firestore');
+                return true;
+            } catch (error) {
+                console.error('Error deleting from Firestore:', error);
+                return false;
+            }
+        }
+
+        // Sync status indicator
+        let firestoreConnected = false;
+
+        async function initFirestoreSync() {
+            try {
+                // Try to load from Firestore first
+                const firestoreData = await loadRestaurantsFromFirestore();
+
+                if (firestoreData && firestoreData.length > 0) {
+                    // Use Firestore data
+                    restaurants = firestoreData;
+                    localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                    firestoreConnected = true;
+                    console.log('Synced from Firestore');
+                } else {
+                    // Upload local data to Firestore if Firestore is empty
+                    const localData = JSON.parse(localStorage.getItem('restaurants'));
+                    if (localData && localData.length > 0) {
+                        await saveRestaurantsToFirestore(localData);
+                        firestoreConnected = true;
+                        console.log('Uploaded local data to Firestore');
+                    }
+                }
+
+                updateSyncStatus(true);
+            } catch (error) {
+                console.error('Firestore sync failed:', error);
+                updateSyncStatus(false);
+            }
+        }
+
+        function updateSyncStatus(connected) {
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) {
+                statusEl.innerHTML = connected
+                    ? '<span style="color: #27ae60;">☁️ Synced</span>'
+                    : '<span style="color: #e74c3c;">⚠️ Offline</span>';
+            }
+        }
+
+        // Central function to save all restaurants to both localStorage and Firestore
+        async function saveAllRestaurants() {
+            // Always save to localStorage (works offline)
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+
+            // Try to sync to Firestore
+            if (firestoreConnected) {
+                updateSyncStatus(false); // Show syncing
+                const success = await saveRestaurantsToFirestore(restaurants);
+                updateSyncStatus(success);
+            }
+        }
+
+        // Save a single restaurant to both localStorage and Firestore
+        async function saveRestaurant(restaurant) {
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+
+            if (firestoreConnected) {
+                await saveRestaurantToFirestore(restaurant);
+            }
+        }
+
+        // Delete a restaurant from both localStorage and Firestore
+        async function deleteRestaurant(restaurantId) {
+            if (firestoreConnected) {
+                await deleteRestaurantFromFirestore(restaurantId);
+            }
+        }
+    </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
@@ -9224,15 +9377,17 @@
                 };
                 
                 restaurants.push(restaurant);
-                
+
                 try {
                     localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                    // Sync to Firestore
+                    saveRestaurantToFirestore(restaurant);
                 } catch (storageError) {
                     alert('Storage is full! Try deleting some old restaurants or photos first.');
                     restaurants.pop();
                     return;
                 }
-                
+
                 loadMarkers();
                 populateSidebar();
                 closeAddRestaurantModal();
@@ -9462,10 +9617,12 @@
                 document.body.removeChild(overlay);
             };
             
-            document.getElementById('confirmDeleteBtn').onclick = function() {
+            document.getElementById('confirmDeleteBtn').onclick = async function() {
                 try {
                     restaurants = restaurants.filter(r => r.id !== id);
                     localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                    // Delete from Firestore
+                    deleteRestaurantFromFirestore(id);
                     document.body.removeChild(overlay);
                     closeViewModal();
                     loadMarkers();
@@ -10027,15 +10184,17 @@
             };
 
             restaurant.photos.push(photoObject);
-            
+
             try {
                 localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                // Sync to Firestore
+                saveRestaurantToFirestore(restaurant);
             } catch (e) {
                 alert('Storage full! Try deleting some photos first.');
                 restaurant.photos.pop();
                 return;
             }
-            
+
             // Close modal and refresh view
             closePhotoRatingModal();
             viewRestaurantWithDishes(pendingPhotoRestaurantId);
@@ -10091,7 +10250,9 @@
 
             restaurant.photos.splice(photoIndex, 1);
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
-            
+            // Sync to Firestore
+            saveRestaurantToFirestore(restaurant);
+
             // Refresh the view
             viewRestaurantWithDishes(restaurantId);
         }
@@ -10158,13 +10319,15 @@
         
         function deletePhotoFromModal(restaurantId, photoIndex) {
             if (!confirm('Delete this item?')) return;
-            
+
             const restaurant = restaurants.find(r => r.id === restaurantId);
             if (!restaurant || !restaurant.photos) return;
-            
+
             restaurant.photos.splice(photoIndex, 1);
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
-            
+            // Sync to Firestore
+            saveRestaurantToFirestore(restaurant);
+
             closeDishInfoModal();
             viewRestaurantWithDishes(restaurantId);
         }
@@ -10678,11 +10841,16 @@
         function showMainApp() {
             hideAllAuthScreens();
             document.getElementById('mainApp').classList.add('visible');
-            // Reinitialize map after showing
-            setTimeout(() => {
-                if (map) {
+            // Reinitialize map and sync with Firestore
+            setTimeout(async () => {
+                if (!map) {
+                    initMap();
+                } else {
                     map.invalidateSize();
                 }
+                // Sync with Firestore
+                await initFirestoreSync();
+                loadMarkers();
             }, 100);
         }
 
