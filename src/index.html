@@ -10247,43 +10247,63 @@
         }
 
         function compressImage(dataUrl, maxWidth, quality, callback) {
+            // Target max size: 500KB (safe for Firestore 1MB limit with other data)
+            const MAX_SIZE_BYTES = 500 * 1024;
+
             try {
                 const img = new Image();
-                
+
                 img.onerror = function() {
-                    // If image fails to load, return original
                     callback(dataUrl);
                 };
-                
+
                 img.onload = function() {
                     try {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
+                        let currentMaxWidth = maxWidth;
+                        let currentQuality = quality;
 
-                        // Calculate new dimensions
-                        if (width > maxWidth) {
-                            height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
+                        function tryCompress() {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+
+                            // Calculate new dimensions
+                            if (width > currentMaxWidth) {
+                                height = Math.round((height * currentMaxWidth) / width);
+                                width = currentMaxWidth;
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // Convert to compressed JPEG
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', currentQuality);
+
+                            // Check size
+                            const sizeBytes = Math.round((compressedDataUrl.length * 3) / 4);
+
+                            if (sizeBytes > MAX_SIZE_BYTES && currentQuality > 0.3) {
+                                // Still too big - reduce quality and try again
+                                currentQuality -= 0.1;
+                                currentMaxWidth = Math.round(currentMaxWidth * 0.8);
+                                console.log(`Photo too large (${Math.round(sizeBytes/1024)}KB), reducing to ${currentMaxWidth}px @ ${Math.round(currentQuality*100)}%`);
+                                tryCompress();
+                            } else {
+                                console.log(`Photo compressed to ${Math.round(sizeBytes/1024)}KB`);
+                                callback(compressedDataUrl);
+                            }
                         }
 
-                        canvas.width = width;
-                        canvas.height = height;
-
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        // Convert to compressed JPEG
-                        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                        callback(compressedDataUrl);
+                        tryCompress();
                     } catch (err) {
-                        // If compression fails, return original
                         callback(dataUrl);
                     }
                 };
                 img.src = dataUrl;
             } catch (err) {
-                // If anything fails, return original
                 callback(dataUrl);
             }
         }
