@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Makarska Dining v2.1.0</title>
+    <title>Makarska Dining v2.2.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
@@ -4762,7 +4762,7 @@
         <div class="empty-header">
             <div class="empty-header-top">
                 <div class="empty-title">My Groups</div>
-                <span class="header-version">v2.1.0</span>
+                <span class="header-version">v2.2.0</span>
             </div>
             <div class="empty-subtitle">No groups yet</div>
         </div>
@@ -4852,7 +4852,7 @@
         <div class="groups-header">
             <div class="groups-header-top">
                 <div class="groups-title">My Groups</div>
-                <span class="header-version">v2.1.0</span>
+                <span class="header-version">v2.2.0</span>
             </div>
             <div class="groups-subtitle" id="groupsSubtitle">All your groups</div>
         </div>
@@ -4931,7 +4931,7 @@
                 <input type="text" id="searchInput" placeholder="🔍 Search restaurants, cuisine, or notes..." autocomplete="off">
                 <div class="search-dropdown" id="searchDropdown"></div>
             </div>
-            <span class="header-version">v2.1.0</span>
+            <span class="header-version">v2.2.0</span>
             <button class="menu-btn" onclick="openFilterModal()">☰</button>
         </div>
     </div>
@@ -5151,7 +5151,7 @@
                 <div class="restaurants-header-title">
                     <span class="restaurants-header-icon">⚙️</span>
                     <span class="restaurants-header-name">Settings</span>
-                    <span class="restaurants-version">v2.1.0</span>
+                    <span class="restaurants-version">v2.2.0</span>
                 </div>
             </div>
         </div>
@@ -6550,12 +6550,20 @@
             'drinks': '#9775fa'
         };
 
-        // Main category icons
+        // Main category icons (emoji)
         const mainCategoryIcons = {
             'restaurant': '🍴',
             'dessert': '🍰',
             'icecream': '🍦',
             'drinks': '🍹'
+        };
+
+        // SVG icons for circle-dot style
+        const mainCategorySvg = {
+            'restaurant': '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>',
+            'dessert': '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.43 2 5.23 3.54 3.01 6L12 22l8.99-16C18.78 3.55 15.57 2 12 2zM7 7c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm5 8c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>',
+            'icecream': '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C9.01 2 6.5 4.37 6.5 7.5c0 .88.25 1.71.69 2.41L12 22l4.81-12.09c.44-.7.69-1.53.69-2.41C17.5 4.37 14.99 2 12 2zm0 8.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 5.5 12 5.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
+            'drinks': '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M21 5V3H3v2l8 9v5H6v2h12v-2h-5v-5l8-9zM5.66 5h12.69l-1.78 2H7.43l-1.77-2z"/></svg>'
         };
 
         const priceColors = {
@@ -7876,18 +7884,38 @@
                 const mainCat = restaurant.mainCategory || 'restaurant';
                 const icon = mainCategoryIcons[mainCat] || '🍴';
                 const iconBg = mainCategoryColors[mainCat] || '#ff6b6b';
+                const svg = mainCategorySvg[mainCat] || mainCategorySvg['restaurant'];
                 const shortName = restaurant.name.length > 12 ? restaurant.name.substring(0, 11) + '…' : restaurant.name;
-                
-                const iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
-                    <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
-                    <span style="font-size: 12px; font-weight: 700; color: #2d3436;">${shortName}</span>
-                </div>`;
+
+                let iconHtml;
+                let iconSize;
+                let iconAnchor;
+
+                if (currentPinStyle === 'circle-dot') {
+                    // Circle + Dot style
+                    iconHtml = `<div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 50px; height: 50px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); border: 3px solid white;">
+                            ${svg}
+                        </div>
+                        <div style="width: 10px; height: 10px; background: ${iconBg}; border-radius: 50%; margin-top: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
+                    </div>`;
+                    iconSize = [56, 70];
+                    iconAnchor = [28, 66];
+                } else {
+                    // Float Card style (default)
+                    iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
+                        <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
+                        <span style="font-size: 12px; font-weight: 700; color: #2d3436;">${shortName}</span>
+                    </div>`;
+                    iconSize = [140, 44];
+                    iconAnchor = [20, 22];
+                }
 
                 const emojiIcon = L.divIcon({
                     html: iconHtml,
                     className: 'custom-emoji-icon',
-                    iconSize: [140, 44],
-                    iconAnchor: [20, 22]
+                    iconSize: iconSize,
+                    iconAnchor: iconAnchor
                 });
 
                 const marker = L.marker([restaurant.lat, restaurant.lng], { icon: emojiIcon });
@@ -7895,7 +7923,7 @@
                 marker.on('click', function() {
                     viewRestaurantWithDishes(restaurant.id);
                 });
-                
+
                 markers.push(marker);
                 markerClusterGroup.addLayer(marker);
             });
@@ -8732,6 +8760,7 @@
                 const mainCat = restaurant.mainCategory || 'restaurant';
                 const icon = mainCategoryIcons[mainCat] || '🍴';
                 const iconBg = mainCategoryColors[mainCat] || '#ff6b6b';
+                const svg = mainCategorySvg[mainCat] || mainCategorySvg['restaurant'];
                 const avgRating = Math.round(((restaurant.foodRating || 0) + (restaurant.serviceRating || 0)) / 2) || 0;
                 const price = restaurant.price || 1;
 
@@ -8740,44 +8769,78 @@
                 const priceSymbol = '€'.repeat(price);
                 const ratingStars = '★'.repeat(avgRating);
 
-                // Build ADAPTIVE pin HTML based on active filters
+                // Build ADAPTIVE pin HTML based on active filters AND pin style
                 let iconHtml;
+                let iconSize;
+                let iconAnchor;
 
-                if (!showRating && !showPrice) {
-                    // Default: Icon + name (white background)
-                    const shortName = restaurant.name.length > 10 ? restaurant.name.substring(0, 9) + '…' : restaurant.name;
-                    iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
-                        <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
-                        <span style="font-size: 12px; font-weight: 700; color: #2d3436;">${shortName}</span>
-                    </div>`;
-                } else if (showRating && !showPrice) {
-                    // Rating filter active: Dark theme + icon + rating stars
-                    iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid #fbbf24;">
-                        <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
-                        <span style="color: #fbbf24; font-size: 11px; font-weight: 600; letter-spacing: -0.5px;">${ratingStars}</span>
-                    </div>`;
-                } else if (!showRating && showPrice) {
-                    // Price filter active: Dark theme + icon + price
-                    iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid ${priceColor};">
-                        <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
-                        <span style="color: ${priceColor}; font-size: 13px; font-weight: 700;">${priceSymbol}</span>
-                    </div>`;
-                } else {
-                    // Both filters active: Dark theme + icon + rating + price stacked
-                    iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid #d4a853;">
-                        <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
-                            <span style="color: #fbbf24; font-size: 9px; font-weight: 600; letter-spacing: -0.5px;">${ratingStars}</span>
-                            <span style="color: ${priceColor}; font-size: 11px; font-weight: 700;">${priceSymbol}</span>
+                if (currentPinStyle === 'circle-dot') {
+                    // === CIRCLE + DOT STYLE ===
+                    // Build badge HTML based on active filters
+                    let priceBadge = '';
+                    let ratingBadge = '';
+
+                    if (showPrice) {
+                        priceBadge = `<div style="position: absolute; top: -4px; right: -8px; background: ${priceColor}; color: white; font-size: 9px; font-weight: 700; padding: 3px 5px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${priceSymbol}</div>`;
+                    }
+                    if (showRating) {
+                        ratingBadge = `<div style="position: absolute; top: -4px; left: -8px; background: #fbbf24; color: white; font-size: 9px; font-weight: 700; padding: 3px 5px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 2px;">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>${avgRating.toFixed(1)}
+                        </div>`;
+                    }
+
+                    iconHtml = `<div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="position: relative;">
+                            <div style="width: 50px; height: 50px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); border: 3px solid white;">
+                                ${svg}
+                            </div>
+                            ${priceBadge}
+                            ${ratingBadge}
                         </div>
+                        <div style="width: 10px; height: 10px; background: ${iconBg}; border-radius: 50%; margin-top: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
                     </div>`;
+                    iconSize = [70, 70];
+                    iconAnchor = [35, 66];
+                } else {
+                    // === FLOAT CARD STYLE (default) ===
+                    if (!showRating && !showPrice) {
+                        // Default: Icon + name (white background)
+                        const shortName = restaurant.name.length > 10 ? restaurant.name.substring(0, 9) + '…' : restaurant.name;
+                        iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
+                            <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
+                            <span style="font-size: 12px; font-weight: 700; color: #2d3436;">${shortName}</span>
+                        </div>`;
+                    } else if (showRating && !showPrice) {
+                        // Rating filter active: Dark theme + icon + rating stars
+                        iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid #fbbf24;">
+                            <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
+                            <span style="color: #fbbf24; font-size: 11px; font-weight: 600; letter-spacing: -0.5px;">${ratingStars}</span>
+                        </div>`;
+                    } else if (!showRating && showPrice) {
+                        // Price filter active: Dark theme + icon + price
+                        iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid ${priceColor};">
+                            <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
+                            <span style="color: ${priceColor}; font-size: 13px; font-weight: 700;">${priceSymbol}</span>
+                        </div>`;
+                    } else {
+                        // Both filters active: Dark theme + icon + rating + price stacked
+                        iconHtml = `<div style="display: flex; align-items: center; background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%); border-radius: 14px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); gap: 8px; border: 2px solid #d4a853;">
+                            <div style="width: 28px; height: 28px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
+                                <span style="color: #fbbf24; font-size: 9px; font-weight: 600; letter-spacing: -0.5px;">${ratingStars}</span>
+                                <span style="color: ${priceColor}; font-size: 11px; font-weight: 700;">${priceSymbol}</span>
+                            </div>
+                        </div>`;
+                    }
+                    iconSize = [160, 50];
+                    iconAnchor = [25, 25];
                 }
 
                 const emojiIcon = L.divIcon({
                     html: iconHtml,
                     className: 'custom-emoji-icon',
-                    iconSize: [160, 50],
-                    iconAnchor: [25, 25]
+                    iconSize: iconSize,
+                    iconAnchor: iconAnchor
                 });
 
                 const marker = L.marker([restaurant.lat, restaurant.lng], { icon: emojiIcon });
