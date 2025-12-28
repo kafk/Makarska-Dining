@@ -9354,9 +9354,13 @@
             }
         });
 
-        // Helper function to save restaurants to localStorage
+        // Helper function to save restaurants to localStorage AND Firestore
         function saveRestaurants() {
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            // Sync all to Firestore
+            if (typeof saveRestaurantsToFirestore === 'function') {
+                saveRestaurantsToFirestore(restaurants);
+            }
         }
 
         function saveRestaurant(e) {
