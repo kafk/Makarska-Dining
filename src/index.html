@@ -8689,11 +8689,86 @@
             loadMarkers();
         }
 
-        // Filter state - empty arrays = show all (React-style)
-        let selectedCategories = [];
+        // ========== REACT-STYLE FILTER (Simple & Direct) ==========
+        // State: empty array = show all
+        let filterMainCategory = 'all';
         let selectedRatings = [];
         let selectedPrices = [];
-        let filterMainCategory = 'all';
+
+        // Core filter function - runs instantly on any change
+        function getFilteredRestaurants() {
+            return restaurants.filter(r => {
+                // Type/Category match
+                const restaurantType = r.mainCategory || 'restaurant';
+                const typeMatch = filterMainCategory === 'all' || restaurantType === filterMainCategory;
+
+                // Rating match (empty = show all)
+                const avgRating = Math.round(((r.foodRating || 0) + (r.serviceRating || 0)) / 2) || 0;
+                const ratingMatch = selectedRatings.length === 0 || selectedRatings.includes(avgRating);
+
+                // Price match (empty = show all)
+                const priceMatch = selectedPrices.length === 0 || selectedPrices.includes(r.price);
+
+                return typeMatch && ratingMatch && priceMatch;
+            });
+        }
+
+        // Apply filter and update map - call this on every filter change
+        function applyFilterAndUpdateMap() {
+            const filtered = getFilteredRestaurants();
+
+            // Clear existing markers
+            if (markerClusterGroup) {
+                markerClusterGroup.clearLayers();
+            }
+            markers = [];
+
+            // Add filtered markers
+            filtered.forEach(restaurant => {
+                const mainCat = restaurant.mainCategory || 'restaurant';
+                const icon = mainCategoryIcons[mainCat] || '🍴';
+                const iconBg = mainCategoryColors[mainCat] || '#ff6b6b';
+                const shortName = restaurant.name.length > 12 ? restaurant.name.substring(0, 11) + '…' : restaurant.name;
+
+                const iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
+                    <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
+                    <span style="font-size: 12px; font-weight: 700; color: #2d3436;">${shortName}</span>
+                </div>`;
+
+                const emojiIcon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-emoji-icon',
+                    iconSize: [140, 44],
+                    iconAnchor: [20, 22]
+                });
+
+                const marker = L.marker([restaurant.lat, restaurant.lng], { icon: emojiIcon });
+                marker.restaurantId = restaurant.id;
+                marker.on('click', function() {
+                    viewRestaurantWithDishes(restaurant.id);
+                });
+
+                markers.push(marker);
+                markerClusterGroup.addLayer(marker);
+            });
+
+            // Update count display
+            const countEl = document.getElementById('filterResultCount');
+            if (countEl) {
+                if (filtered.length === restaurants.length) {
+                    countEl.innerHTML = `<span style="color: #27ae60;">Showing all ${filtered.length}</span>`;
+                } else if (filtered.length === 0) {
+                    countEl.innerHTML = `<span style="color: #ff6b6b;">No matches</span>`;
+                } else {
+                    countEl.innerHTML = `<span style="color: #ff6b6b; font-weight: 600;">${filtered.length}</span> of ${restaurants.length}`;
+                }
+            }
+
+            console.log('Filter applied:', { filterMainCategory, selectedRatings, selectedPrices, showing: filtered.length });
+        }
+
+        // Legacy variables for compatibility
+        let selectedCategories = [];
         let filterSubcategory = 'all';
 
         // Filter subcategories (same as top dishes)
@@ -8765,8 +8840,8 @@
             // Update price filters based on category
             updatePriceFilters(category);
 
-            // Real-time preview
-            updateFilterPreview();
+            // INSTANT FILTER - Apply immediately!
+            applyFilterAndUpdateMap();
         }
         
         function updatePriceFilters(category, subcategory = null) {
@@ -8901,7 +8976,8 @@
             } else {
                 selectedRatings.push(rating);
             }
-            updateFilterPreview(); // Real-time preview
+            // INSTANT FILTER - Apply immediately!
+            applyFilterAndUpdateMap();
         }
 
         function togglePrice(chipElement, price) {
@@ -8912,7 +8988,8 @@
             } else {
                 selectedPrices.push(price);
             }
-            updateFilterPreview(); // Real-time preview
+            // INSTANT FILTER - Apply immediately!
+            applyFilterAndUpdateMap();
         }
 
         // Real-time filter preview - shows count without applying
@@ -8958,7 +9035,7 @@
         }
 
         function resetFilters() {
-            // Reset all filter state
+            // Reset all filter state to defaults
             selectedCategories = [];
             selectedRatings = [];
             selectedPrices = [];
@@ -8972,97 +9049,24 @@
             });
 
             // Hide subcategories
-            document.getElementById('filterSubcategorySection').style.display = 'none';
+            const subSection = document.getElementById('filterSubcategorySection');
+            if (subSection) subSection.style.display = 'none';
 
             // Reset all chips
             document.querySelectorAll('.category-chip').forEach(chip => chip.classList.remove('active'));
             document.querySelectorAll('.rating-chip').forEach(chip => chip.classList.remove('active'));
             document.querySelectorAll('.price-chip').forEach(chip => chip.classList.remove('active'));
 
-            // Reload all markers (show everything)
-            loadMarkers();
+            // INSTANT FILTER - Apply immediately (show all)
+            applyFilterAndUpdateMap();
 
             // Update count
             updateFilterCount(restaurants.length, restaurants.length);
         }
 
+        // Called when user clicks "Show Results" button in filter modal
         function applyFilters() {
-            // React-style filter logic: empty array = show all
-            console.log('Applying filters:', {
-                mainCategory: filterMainCategory,
-                subcategory: filterSubcategory,
-                ratings: selectedRatings,
-                prices: selectedPrices
-            });
-
-            // Get filtered restaurants
-            const filteredRestaurants = restaurants.filter(restaurant => {
-                // Main category filter - default to 'restaurant' if missing (for old data)
-                const restaurantCategory = restaurant.mainCategory || 'restaurant';
-                const categoryMatch = filterMainCategory === 'all' || restaurantCategory === filterMainCategory;
-
-                // Subcategory filter (check food items)
-                let subcategoryMatch = true;
-                if (filterSubcategory !== 'all' && filterMainCategory !== 'all') {
-                    if (restaurant.foodItems && restaurant.foodItems.length > 0) {
-                        subcategoryMatch = restaurant.foodItems.some(item => item.subcategory === filterSubcategory);
-                    } else {
-                        subcategoryMatch = false;
-                    }
-                }
-
-                // Rating filter - empty = show all
-                let ratingMatch = true;
-                if (selectedRatings.length > 0) {
-                    const avgRating = Math.round((restaurant.foodRating + restaurant.serviceRating) / 2);
-                    ratingMatch = selectedRatings.includes(avgRating);
-                }
-
-                // Price filter - empty = show all
-                let priceMatch = true;
-                if (selectedPrices.length > 0) {
-                    priceMatch = selectedPrices.includes(restaurant.price);
-                }
-
-                return categoryMatch && subcategoryMatch && ratingMatch && priceMatch;
-            });
-
-            // Update markers - remove all and add only filtered ones
-            if (markerClusterGroup) {
-                markerClusterGroup.clearLayers();
-            }
-
-            markers = [];
-            filteredRestaurants.forEach(restaurant => {
-                const icon = getCategoryIcon(restaurant.mainCategory || restaurant.cuisine);
-                const iconBg = getCategoryIconBg(restaurant.mainCategory || restaurant.cuisine);
-                const shortName = restaurant.name.length > 12 ? restaurant.name.substring(0, 11) + '…' : restaurant.name;
-
-                const iconHtml = `<div style="display: flex; align-items: center; background: white; border-radius: 20px; padding: 6px 12px 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); gap: 8px; white-space: nowrap;">
-                    <div style="width: 32px; height: 32px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
-                    <span style="font-size: 12px; font-weight: 700; color: #2d3436;">${shortName}</span>
-                </div>`;
-
-                const emojiIcon = L.divIcon({
-                    html: iconHtml,
-                    className: 'custom-emoji-icon',
-                    iconSize: [140, 44],
-                    iconAnchor: [20, 22]
-                });
-
-                const marker = L.marker([restaurant.lat, restaurant.lng], { icon: emojiIcon });
-                marker.restaurantId = restaurant.id;
-                marker.on('click', function() {
-                    viewRestaurantWithDishes(restaurant.id);
-                });
-
-                markers.push(marker);
-                markerClusterGroup.addLayer(marker);
-            });
-
-            // Update filter count display
-            updateFilterCount(filteredRestaurants.length, restaurants.length);
-
+            applyFilterAndUpdateMap();
             closeFilterModal();
         }
 
