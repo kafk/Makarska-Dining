@@ -8884,7 +8884,9 @@
         // Real-time filter preview - shows count without applying
         function updateFilterPreview() {
             const count = restaurants.filter(restaurant => {
-                const categoryMatch = filterMainCategory === 'all' || restaurant.mainCategory === filterMainCategory;
+                // Default to 'restaurant' if mainCategory is missing (for old data)
+                const restaurantCategory = restaurant.mainCategory || 'restaurant';
+                const categoryMatch = filterMainCategory === 'all' || restaurantCategory === filterMainCategory;
 
                 let subcategoryMatch = true;
                 if (filterSubcategory !== 'all' && filterMainCategory !== 'all') {
@@ -8961,8 +8963,9 @@
 
             // Get filtered restaurants
             const filteredRestaurants = restaurants.filter(restaurant => {
-                // Main category filter
-                const categoryMatch = filterMainCategory === 'all' || restaurant.mainCategory === filterMainCategory;
+                // Main category filter - default to 'restaurant' if missing (for old data)
+                const restaurantCategory = restaurant.mainCategory || 'restaurant';
+                const categoryMatch = filterMainCategory === 'all' || restaurantCategory === filterMainCategory;
 
                 // Subcategory filter (check food items)
                 let subcategoryMatch = true;
