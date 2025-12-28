@@ -8971,12 +8971,19 @@
                 if (filterSubcategory !== 'all' && filterMainCategory !== 'all') {
                     // Check if restaurant has dishes with this subcategory
                     if (r.foodItems && r.foodItems.length > 0) {
-                        subcategoryMatch = r.foodItems.some(item => item.subcategory === filterSubcategory);
-                    } else if (r.cuisine) {
-                        // Fallback: check cuisine field
+                        // foodItems use 'category' field, not 'subcategory'
+                        subcategoryMatch = r.foodItems.some(item => item.category === filterSubcategory);
+                    }
+                    // Also check photos array (they have 'category' or 'subcategory' field)
+                    if (!subcategoryMatch && r.photos && r.photos.length > 0) {
+                        subcategoryMatch = r.photos.some(photo =>
+                            photo.category === filterSubcategory ||
+                            photo.subcategory === filterSubcategory
+                        );
+                    }
+                    // Fallback: check cuisine field
+                    if (!subcategoryMatch && r.cuisine) {
                         subcategoryMatch = r.cuisine.toLowerCase().includes(filterSubcategory.toLowerCase());
-                    } else {
-                        subcategoryMatch = false;
                     }
                 }
 
