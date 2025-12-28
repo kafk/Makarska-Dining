@@ -6471,6 +6471,40 @@
                 ]
             }
         ];
+
+        // === DATA MIGRATION: Add mainCategory to old data ===
+        // This fixes restaurants saved before mainCategory was added
+        (function migrateMainCategory() {
+            let needsSave = false;
+            restaurants.forEach(restaurant => {
+                if (!restaurant.mainCategory) {
+                    // Detect category based on cuisine/name
+                    const cuisineLower = (restaurant.cuisine || '').toLowerCase();
+                    const nameLower = (restaurant.name || '').toLowerCase();
+
+                    if (cuisineLower.includes('gelato') || cuisineLower.includes('ice') ||
+                        nameLower.includes('glass') || nameLower.includes('sladoled') ||
+                        nameLower.includes('ice') || nameLower.includes('gelat')) {
+                        restaurant.mainCategory = 'icecream';
+                    } else if (cuisineLower.includes('dessert') || cuisineLower.includes('cake') ||
+                               cuisineLower.includes('pastry') || cuisineLower.includes('bakery')) {
+                        restaurant.mainCategory = 'dessert';
+                    } else if (cuisineLower.includes('bar') || cuisineLower.includes('pub') ||
+                               cuisineLower.includes('cafe') || cuisineLower.includes('coffee')) {
+                        restaurant.mainCategory = 'drinks';
+                    } else {
+                        restaurant.mainCategory = 'restaurant';
+                    }
+                    needsSave = true;
+                    console.log(`Migrated ${restaurant.name} to mainCategory: ${restaurant.mainCategory}`);
+                }
+            });
+            if (needsSave) {
+                localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                console.log('Data migration complete: mainCategory added to all restaurants');
+            }
+        })();
+
         let currentRestaurantId = null;
         let selectedLocation = null;
         let currentPinStyle = localStorage.getItem('pinStyle') || 'float-card';
