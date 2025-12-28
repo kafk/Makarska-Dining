@@ -5892,10 +5892,15 @@
         async function saveRestaurantToFirestore(restaurant) {
             try {
                 await db.collection('restaurants').doc(String(restaurant.id)).set(restaurant);
-                console.log('Restaurant saved:', restaurant.name);
+                console.log('☁️ Saved to Firestore:', restaurant.name);
                 return true;
             } catch (error) {
-                console.error('Error saving restaurant:', error);
+                console.error('❌ Error saving', restaurant.name, 'to Firestore:', error.message);
+                // Check if it's a size issue
+                const dataSize = JSON.stringify(restaurant).length;
+                if (dataSize > 900000) {
+                    console.warn('Document too large:', Math.round(dataSize/1024), 'KB (limit is ~1MB). Try removing photos.');
+                }
                 return false;
             }
         }
@@ -5916,6 +5921,8 @@
 
         async function initFirestoreSync() {
             try {
+                console.log('Starting Firestore sync...');
+
                 // Try to load from Firestore first
                 const firestoreData = await loadRestaurantsFromFirestore();
 
@@ -5924,20 +5931,41 @@
                     restaurants = firestoreData;
                     localStorage.setItem('restaurants', JSON.stringify(restaurants));
                     firestoreConnected = true;
-                    console.log('Synced from Firestore');
+                    console.log('✅ Synced from Firestore:', firestoreData.length, 'restaurants');
                 } else {
                     // Upload local data to Firestore if Firestore is empty
                     const localData = JSON.parse(localStorage.getItem('restaurants'));
                     if (localData && localData.length > 0) {
-                        await saveRestaurantsToFirestore(localData);
+                        console.log('Firestore empty, uploading', localData.length, 'restaurants...');
+
+                        // Upload each restaurant individually (in case some are too large)
+                        let uploaded = 0;
+                        let failed = 0;
+                        for (const restaurant of localData) {
+                            try {
+                                await db.collection('restaurants').doc(String(restaurant.id)).set(restaurant);
+                                uploaded++;
+                            } catch (err) {
+                                console.warn('Failed to upload', restaurant.name, ':', err.message);
+                                failed++;
+                            }
+                        }
+
                         firestoreConnected = true;
-                        console.log('Uploaded local data to Firestore');
+                        console.log('✅ Uploaded to Firestore:', uploaded, 'success,', failed, 'failed');
+
+                        if (failed > 0) {
+                            console.warn('Some restaurants failed - they may have photos that are too large (>1MB limit)');
+                        }
+                    } else {
+                        console.log('No local data to upload');
+                        firestoreConnected = true;
                     }
                 }
 
                 updateSyncStatus(true);
             } catch (error) {
-                console.error('Firestore sync failed:', error);
+                console.error('❌ Firestore sync failed:', error);
                 updateSyncStatus(false);
             }
         }
