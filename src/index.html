@@ -6034,19 +6034,6 @@
             }
         }
 
-        // Central function to save all restaurants to both localStorage and Firestore
-        async function saveAllRestaurants() {
-            // Always save to localStorage (works offline)
-            localStorage.setItem('restaurants', JSON.stringify(restaurants));
-
-            // Try to sync to Firestore
-            if (firestoreConnected) {
-                updateSyncStatus(false); // Show syncing
-                const success = await saveRestaurantsToFirestore(restaurants);
-                updateSyncStatus(success);
-            }
-        }
-
         // Save a single restaurant to both localStorage and Firestore
         async function saveRestaurant(restaurant) {
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
@@ -7583,10 +7570,6 @@
             populateTopDishes();
         }
 
-        function filterDishes(category) {
-            selectMainCategory(category);
-        }
-
         function filterRestaurantsList() {
             populateRestaurantsList();
         }
@@ -8010,82 +7993,6 @@
                 console.log('Tips: Kör filen lokalt i din webbläsare för att geocoding ska fungera.');
             }
             return null;
-        }
-
-        // Geocode all restaurants that have addresses but wrong/missing coordinates
-        async function geocodeAllRestaurants() {
-            let updated = false;
-            
-            for (const restaurant of restaurants) {
-                // If restaurant has an address, geocode it
-                if (restaurant.address && restaurant.address.length > 5) {
-                    const coords = await geocodeAddress(restaurant.address, restaurant.name);
-                    if (coords) {
-                        // Check if coordinates are significantly different (more than ~100m)
-                        const latDiff = Math.abs((restaurant.lat || 0) - coords.lat);
-                        const lngDiff = Math.abs((restaurant.lng || 0) - coords.lng);
-                        
-                        if (latDiff > 0.001 || lngDiff > 0.001 || !restaurant.lat || !restaurant.lng) {
-                            restaurant.lat = coords.lat;
-                            restaurant.lng = coords.lng;
-                            updated = true;
-                            console.log(`Updated ${restaurant.name} to ${coords.lat}, ${coords.lng}`);
-                        }
-                    }
-                    // Small delay to respect Nominatim rate limits
-                    await new Promise(resolve => setTimeout(resolve, 1100));
-                }
-            }
-            
-            if (updated) {
-                saveRestaurants();
-                loadMarkers();
-            }
-        }
-        
-        // Run geocoding with visual feedback
-        async function runGeocoding() {
-            const btn = document.getElementById('geocodeBtn');
-            const status = document.getElementById('geocodeStatus');
-            
-            btn.disabled = true;
-            btn.textContent = '⏳ Söker adresser...';
-            status.textContent = '';
-            
-            let updated = 0;
-            let failed = 0;
-            let total = restaurants.filter(r => r.address && r.address.length > 5).length;
-            let current = 0;
-            
-            for (const restaurant of restaurants) {
-                if (restaurant.address && restaurant.address.length > 5) {
-                    current++;
-                    status.textContent = `Bearbetar ${current}/${total}: ${restaurant.name}...`;
-                    
-                    const coords = await geocodeAddress(restaurant.address, restaurant.name);
-                    if (coords) {
-                        restaurant.lat = coords.lat;
-                        restaurant.lng = coords.lng;
-                        updated++;
-                    } else {
-                        failed++;
-                    }
-                    // Nominatim rate limit: 1 request per second
-                    await new Promise(resolve => setTimeout(resolve, 1100));
-                }
-            }
-            
-            saveRestaurants();
-            loadMarkers();
-            
-            btn.disabled = false;
-            btn.textContent = '🗺️ Uppdatera alla adresser';
-            status.textContent = `✅ Klart! ${updated} uppdaterade, ${failed} kunde ej hittas.`;
-            
-            if (updated > 0) {
-                // Switch to map view to show results
-                switchBottomNav('map');
-            }
         }
 
         function loadMarkers() {
@@ -8941,18 +8848,6 @@
             loadMarkers();
         }
 
-        function applyFilterChip(filterType, chipElement) {
-            // Update active state
-            document.querySelectorAll('.filter-chip').forEach(chip => {
-                chip.classList.remove('active');
-            });
-            chipElement.classList.add('active');
-
-            // Apply filter
-            currentFilter = filterType;
-            loadMarkers();
-        }
-
         // ========== REACT-STYLE FILTER (Simple & Direct) ==========
         // State: empty array = show all
         let filterMainCategory = 'all';
@@ -9125,8 +9020,7 @@
             console.log('Filter applied:', { filterMainCategory, selectedRatings, selectedPrices, showRating, showPrice, showing: filtered.length });
         }
 
-        // Legacy variables for compatibility
-        let selectedCategories = [];
+        // Filter subcategory state
         let filterSubcategory = 'all';
 
         // Filter subcategories (same as top dishes)
@@ -9316,16 +9210,6 @@
             updateFilterPreview();
         }
 
-        function toggleCategory(chipElement, category) {
-            chipElement.classList.toggle('active');
-            const index = selectedCategories.indexOf(category);
-            if (index > -1) {
-                selectedCategories.splice(index, 1);
-            } else {
-                selectedCategories.push(category);
-            }
-        }
-
         function toggleRating(chipElement, rating) {
             chipElement.classList.toggle('active');
             const index = selectedRatings.indexOf(rating);
@@ -9394,7 +9278,6 @@
 
         function resetFilters() {
             // Reset all filter state to defaults
-            selectedCategories = [];
             selectedRatings = [];
             selectedPrices = [];
             filterMainCategory = 'all';
