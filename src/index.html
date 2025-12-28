@@ -5916,6 +5916,58 @@
             }
         }
 
+        // ========== GROUPS FIRESTORE FUNCTIONS ==========
+
+        async function saveGroupsToFirestore(groupsData) {
+            try {
+                // Save all groups as a single document (simpler for user-specific data)
+                await db.collection('userdata').doc('groups').set({ groups: groupsData });
+                console.log('☁️ Groups saved to Firestore:', groupsData.length, 'groups');
+                return true;
+            } catch (error) {
+                console.error('❌ Error saving groups to Firestore:', error);
+                return false;
+            }
+        }
+
+        async function loadGroupsFromFirestore() {
+            try {
+                const doc = await db.collection('userdata').doc('groups').get();
+                if (doc.exists && doc.data().groups) {
+                    console.log('☁️ Loaded groups from Firestore:', doc.data().groups.length);
+                    return doc.data().groups;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading groups from Firestore:', error);
+                return null;
+            }
+        }
+
+        async function initGroupsFirestoreSync() {
+            try {
+                const firestoreGroups = await loadGroupsFromFirestore();
+
+                if (firestoreGroups && firestoreGroups.length > 0) {
+                    // Use Firestore data
+                    userGroups = firestoreGroups;
+                    localStorage.setItem('userGroups', JSON.stringify(userGroups));
+                    console.log('✅ Groups synced from Firestore');
+                } else {
+                    // Upload local groups to Firestore
+                    const localGroups = JSON.parse(localStorage.getItem('userGroups')) || [];
+                    if (localGroups.length > 0) {
+                        await saveGroupsToFirestore(localGroups);
+                        console.log('✅ Local groups uploaded to Firestore');
+                    }
+                }
+            } catch (error) {
+                console.error('Groups Firestore sync failed:', error);
+            }
+        }
+
+        // ========== END GROUPS FIRESTORE ==========
+
         // Sync status indicator
         let firestoreConnected = false;
 
@@ -5962,6 +6014,9 @@
                         firestoreConnected = true;
                     }
                 }
+
+                // Also sync groups
+                await initGroupsFirestoreSync();
 
                 updateSyncStatus(true);
             } catch (error) {
@@ -10854,6 +10909,10 @@
 
         function saveGroups() {
             localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            // Sync to Firestore
+            if (typeof saveGroupsToFirestore === 'function') {
+                saveGroupsToFirestore(userGroups);
+            }
         }
 
         function generateGroupId() {
