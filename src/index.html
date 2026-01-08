@@ -9976,9 +9976,9 @@
                     return;
                 }
 
-                // Check file size (max 5MB)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Photo is too large. Please select an image under 5MB.');
+                // Check file size (max 10MB for raw camera photos)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Photo is too large. Please select an image under 10MB.');
                     event.target.value = '';
                     return;
                 }
@@ -9990,26 +9990,63 @@
                     return;
                 }
 
+                // Reset the input immediately to prevent issues
+                const inputElement = event.target;
+                setTimeout(() => { if (inputElement) inputElement.value = ''; }, 100);
+
                 const reader = new FileReader();
-                
+
                 reader.onerror = function() {
                     alert('Error reading photo. Please try again.');
-                    event.target.value = '';
                 };
-                
+
                 reader.onload = function(e) {
                     try {
-                        // Show crop modal first before compression
-                        showPhotoCropModal(e.target.result, restaurantId);
+                        // Pre-compress image before crop modal to avoid memory issues on iOS
+                        const img = new Image();
+                        img.onload = function() {
+                            try {
+                                // Limit max dimension to 1500px to reduce memory usage
+                                const maxDim = 1500;
+                                let width = img.width;
+                                let height = img.height;
+
+                                if (width > maxDim || height > maxDim) {
+                                    if (width > height) {
+                                        height = Math.round(height * maxDim / width);
+                                        width = maxDim;
+                                    } else {
+                                        width = Math.round(width * maxDim / height);
+                                        height = maxDim;
+                                    }
+                                }
+
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+
+                                const resizedImage = canvas.toDataURL('image/jpeg', 0.85);
+                                showPhotoCropModal(resizedImage, restaurantId);
+                            } catch (err) {
+                                console.error('Error resizing image:', err);
+                                // Try with original if resize fails
+                                showPhotoCropModal(e.target.result, restaurantId);
+                            }
+                        };
+                        img.onerror = function() {
+                            alert('Error loading photo. Please try again.');
+                        };
+                        img.src = e.target.result;
                     } catch (err) {
+                        console.error('Error processing photo:', err);
                         alert('Error processing photo. Please try again.');
                     }
                 };
                 reader.readAsDataURL(file);
-                
-                // Reset the input so the same file can be selected again
-                event.target.value = '';
             } catch (err) {
+                console.error('Error capturing photo:', err);
                 alert('Error capturing photo. Please try again.');
                 if (event.target) event.target.value = '';
             }
