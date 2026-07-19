@@ -8762,13 +8762,67 @@
             }
         });
 
+        // Detect if running in Capacitor native app
+        function isNativeApp() {
+            return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+        }
+
+        // Take photo using Capacitor Camera plugin (native) or file input (browser)
+        async function takeNativePhoto(onBase64) {
+            try {
+                const { Camera, CameraResultType, CameraSource } = window.Capacitor.Plugins;
+                const image = await Camera.getPhoto({
+                    quality: 80,
+                    allowEditing: false,
+                    resultType: CameraResultType.Base64,
+                    source: CameraSource.Camera
+                });
+                onBase64('data:image/jpeg;base64,' + image.base64String);
+            } catch (err) {
+                if (err && err.message !== 'User cancelled photos app') {
+                    alert('Could not open camera: ' + (err.message || err));
+                }
+            }
+        }
+
+        async function pickNativePhoto(onBase64) {
+            try {
+                const { Camera, CameraResultType, CameraSource } = window.Capacitor.Plugins;
+                const image = await Camera.getPhoto({
+                    quality: 80,
+                    allowEditing: false,
+                    resultType: CameraResultType.Base64,
+                    source: CameraSource.Photos
+                });
+                onBase64('data:image/jpeg;base64,' + image.base64String);
+            } catch (err) {
+                if (err && err.message !== 'User cancelled photos app') {
+                    alert('Could not open photos: ' + (err.message || err));
+                }
+            }
+        }
+
         // Restaurant photo functions
         function triggerRestaurantCamera() {
-            document.getElementById('restaurantCameraInput').click();
+            if (isNativeApp()) {
+                takeNativePhoto(base64 => setRestaurantPhotoFromBase64(base64));
+            } else {
+                document.getElementById('restaurantCameraInput').click();
+            }
         }
 
         function triggerRestaurantGallery() {
-            document.getElementById('restaurantGalleryInput').click();
+            if (isNativeApp()) {
+                pickNativePhoto(base64 => setRestaurantPhotoFromBase64(base64));
+            } else {
+                document.getElementById('restaurantGalleryInput').click();
+            }
+        }
+
+        function setRestaurantPhotoFromBase64(base64) {
+            compressImage(base64, 800, 0.8, function(compressed) {
+                showRestaurantPhotoPreview(compressed);
+            });
         }
 
         function handleRestaurantPhotoSelect(event) {
@@ -9721,11 +9775,25 @@
 
         // Food item photo functions
         function triggerFoodCamera() {
-            document.getElementById('foodCameraInput').click();
+            if (isNativeApp()) {
+                takeNativePhoto(base64 => setFoodPhotoFromBase64(base64));
+            } else {
+                document.getElementById('foodCameraInput').click();
+            }
         }
 
         function triggerFoodGallery() {
-            document.getElementById('foodGalleryInput').click();
+            if (isNativeApp()) {
+                pickNativePhoto(base64 => setFoodPhotoFromBase64(base64));
+            } else {
+                document.getElementById('foodGalleryInput').click();
+            }
+        }
+
+        function setFoodPhotoFromBase64(base64) {
+            compressImage(base64, 800, 0.8, function(compressed) {
+                showFoodPhotoPreview(compressed);
+            });
         }
 
         function handleFoodPhotoSelect(event) {

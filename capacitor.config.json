@@ -11,6 +11,11 @@
     "scheme": "Makarska Dining"
   },
   "plugins": {
+    "Camera": {
+      "iosNSCameraUsageDescription": "This app needs camera access to take photos of restaurants and food items.",
+      "iosNSPhotoLibraryUsageDescription": "This app needs photo library access to select photos of restaurants and food items.",
+      "iosNSPhotoLibraryAddUsageDescription": "This app needs to save photos to your photo library."
+    },
     "SplashScreen": {
       "launchShowDuration": 2000,
       "backgroundColor": "#ffffff",
