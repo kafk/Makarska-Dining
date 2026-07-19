@@ -5054,11 +5054,7 @@
             <div class="filter-section">
                 <h3 class="filter-section-title">Main Category</h3>
                 <div class="filter-main-categories" id="filterMainCategories">
-                    <button class="filter-category-btn active" data-category="all" onclick="selectFilterMainCategory('all')">🍽️ All</button>
-                    <button class="filter-category-btn" data-category="restaurant" onclick="selectFilterMainCategory('restaurant')">🍴 Restaurant</button>
-                    <button class="filter-category-btn" data-category="dessert" onclick="selectFilterMainCategory('dessert')">🍰 Dessert</button>
-                    <button class="filter-category-btn" data-category="icecream" onclick="selectFilterMainCategory('icecream')">🍦 Ice Cream</button>
-                    <button class="filter-category-btn" data-category="drinks" onclick="selectFilterMainCategory('drinks')">🍹 Drinks</button>
+                    <!-- populated by populateCategoryFilters() -->
                 </div>
             </div>
 
@@ -5154,11 +5150,7 @@
             </div>
 
             <div class="dish-filters" id="restaurantCategoryFilters">
-                <button class="dish-filter-btn active" data-category="all" onclick="selectRestaurantCategory('all')">🍽️ All</button>
-                <button class="dish-filter-btn" data-category="restaurant" onclick="selectRestaurantCategory('restaurant')">🍴 Restaurant</button>
-                <button class="dish-filter-btn" data-category="dessert" onclick="selectRestaurantCategory('dessert')">🍰 Dessert</button>
-                <button class="dish-filter-btn" data-category="icecream" onclick="selectRestaurantCategory('icecream')">🍦 Ice Cream</button>
-                <button class="dish-filter-btn" data-category="drinks" onclick="selectRestaurantCategory('drinks')">🍹 Drinks</button>
+                <!-- populated by populateCategoryFilters() -->
             </div>
         </div>
         <div id="restaurantsListContainer"></div>
@@ -5175,11 +5167,7 @@
             </div>
 
             <div class="dish-filters" id="mainCategoryFilters">
-                <button class="dish-filter-btn active" data-category="all" onclick="selectMainCategory('all')">🍽️ All</button>
-                <button class="dish-filter-btn" data-category="restaurant" onclick="selectMainCategory('restaurant')">🍴 Restaurant</button>
-                <button class="dish-filter-btn" data-category="dessert" onclick="selectMainCategory('dessert')">🍰 Dessert</button>
-                <button class="dish-filter-btn" data-category="icecream" onclick="selectMainCategory('icecream')">🍦 Ice Cream</button>
-                <button class="dish-filter-btn" data-category="drinks" onclick="selectMainCategory('drinks')">🍹 Drinks</button>
+                <!-- populated by populateCategoryFilters() -->
             </div>
             <div class="dish-subcategories" id="subcategoryFilters" style="display: none;">
                 <!-- Subcategories will be populated dynamically -->
@@ -10896,6 +10884,34 @@
             populateCategoriesList();
             populateSubcategoriesList();
             populatePriceRangesList();
+            populateCategoryFilters();
+        }
+
+        function populateCategoryFilters() {
+            const cats = getAllCategories();
+
+            const allBtn = (onclick, cls) =>
+                `<button class="${cls} active" data-category="all" onclick="${onclick}('all')">🍽️ All</button>`;
+            const catBtn = (cat, onclick, cls) =>
+                `<button class="${cls}" data-category="${cat.id}" onclick="${onclick}('${cat.id}')">${cat.emoji} ${cat.name}</button>`;
+
+            const filterMain = document.getElementById('filterMainCategories');
+            if (filterMain) {
+                filterMain.innerHTML = allBtn('selectFilterMainCategory', 'filter-category-btn')
+                    + cats.map(c => catBtn(c, 'selectFilterMainCategory', 'filter-category-btn')).join('');
+            }
+
+            const restaurantFilters = document.getElementById('restaurantCategoryFilters');
+            if (restaurantFilters) {
+                restaurantFilters.innerHTML = allBtn('selectRestaurantCategory', 'dish-filter-btn')
+                    + cats.map(c => catBtn(c, 'selectRestaurantCategory', 'dish-filter-btn')).join('');
+            }
+
+            const mainFilters = document.getElementById('mainCategoryFilters');
+            if (mainFilters) {
+                mainFilters.innerHTML = allBtn('selectMainCategory', 'dish-filter-btn')
+                    + cats.map(c => catBtn(c, 'selectMainCategory', 'dish-filter-btn')).join('');
+            }
         }
 
         function populateCategoriesList() {
@@ -11224,6 +11240,8 @@
             }
             
             setTimeout(initMap, 100);
+            // Populate category filters from saved categories
+            populateCategoryFilters();
             // Show floating add button on home page by default
             const floatingAddBtn = document.getElementById('floatingAddBtn');
             if (floatingAddBtn) floatingAddBtn.classList.add('show');
