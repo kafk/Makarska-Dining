@@ -3907,6 +3907,8 @@
             z-index: 9999;
             display: flex;
             flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
@@ -3969,8 +3971,10 @@
         .login-buttons {
             background: white;
             border-radius: 24px 24px 0 0;
-            padding: 28px 24px 40px;
+            padding: 28px 24px calc(40px + env(safe-area-inset-bottom));
             box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            margin-top: auto;
+            flex-shrink: 0;
         }
 
         .login-btn {
