@@ -5611,6 +5611,12 @@
                     <div id="autocompleteResults" class="autocomplete-results"></div>
                 </div>
                 <div class="form-group">
+                    <label>📂 Place Category</label>
+                    <select id="restaurantCategory" required>
+                        <option value="">Choose category...</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Cuisine Type</label>
                     <select id="cuisine" required>
                         <option value="Croatian">Croatian</option>
@@ -8732,10 +8738,17 @@
             document.getElementById('addRestaurantModal').style.display = 'block';
             document.getElementById('restaurantForm').reset();
             selectedLocation = null;
-            
+
+            // Populate place category dropdown from user categories
+            const catSelect = document.getElementById('restaurantCategory');
+            catSelect.innerHTML = '<option value="">Choose category...</option>';
+            getAllCategories().forEach(cat => {
+                catSelect.innerHTML += `<option value="${cat.id}">${cat.emoji} ${cat.name}</option>`;
+            });
+
             // Reset photo section
             resetRestaurantPhotoForm();
-            
+
             // Reset location picker
             resetLocationPicker();
         }
@@ -9792,12 +9805,17 @@
             const nameValue = document.getElementById('name').value;
             const cuisineValue = document.getElementById('cuisine').value;
             const priceValue = document.getElementById('price').value;
-            
+            const categoryValue = document.getElementById('restaurantCategory').value;
+
             if (!nameValue || !nameValue.trim()) {
                 alert('Please enter a restaurant name');
                 return;
             }
-            
+            if (!categoryValue) {
+                alert('Please choose a place category');
+                return;
+            }
+
             try {
                 const restaurantPhotoData = document.getElementById('restaurantPhotoData').value;
                 
@@ -9806,6 +9824,7 @@
                     name: nameValue.trim(),
                     cuisine: cuisineValue,
                     price: parseInt(priceValue),
+                    category: categoryValue,
                     lat: parseFloat(document.getElementById('lat').value) || 43.2964,
                     lng: parseFloat(document.getElementById('lng').value) || 17.0175,
                     foodRating: 0,
