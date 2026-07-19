@@ -8873,11 +8873,7 @@
             // Populate category dropdown
             const catSelect = document.getElementById('foodCategory');
             catSelect.innerHTML = '<option value="">Choose category...</option>';
-            const categories = JSON.parse(localStorage.getItem('customCategories')) || [
-                { id: 'food', name: 'Food', emoji: '🍽️' },
-                { id: 'drinks', name: 'Drinks', emoji: '🍺' },
-                { id: 'ice-cream', name: 'Ice Cream', emoji: '🍦' }
-            ];
+            const categories = getAllCategories();
             categories.forEach(cat => {
                 catSelect.innerHTML += `<option value="${cat.id}">${cat.emoji} ${cat.name}</option>`;
             });
@@ -8891,20 +8887,7 @@
             const subGroup = document.getElementById('foodSubcategoryGroup');
             const subSelect = document.getElementById('foodSubcategory');
             
-            const subcategories = JSON.parse(localStorage.getItem('customSubcategories')) || [
-                { id: 'pasta', name: 'Pasta', parentId: 'food' },
-                { id: 'pizza', name: 'Pizza', parentId: 'food' },
-                { id: 'seafood', name: 'Seafood', parentId: 'food' },
-                { id: 'meat', name: 'Meat', parentId: 'food' },
-                { id: 'salad', name: 'Salad', parentId: 'food' },
-                { id: 'dessert', name: 'Dessert', parentId: 'food' },
-                { id: 'beer', name: 'Beer', parentId: 'drinks' },
-                { id: 'wine', name: 'Wine', parentId: 'drinks' },
-                { id: 'cocktail', name: 'Cocktail', parentId: 'drinks' },
-                { id: 'coffee', name: 'Coffee', parentId: 'drinks' },
-                { id: 'gelato', name: 'Gelato', parentId: 'ice-cream' },
-                { id: 'sorbet', name: 'Sorbet', parentId: 'ice-cream' }
-            ];
+            const subcategories = [...(JSON.parse(localStorage.getItem('customSubcategories')) || [])];
             
             const filtered = subcategories.filter(s => s.parentId === category);
             
