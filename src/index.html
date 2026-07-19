@@ -5745,8 +5745,13 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>🕐 Wait time (optional)</label>
-                    <input type="text" id="dishWaitTime" placeholder="e.g., 10 min">
+                    <label>🕐 Wait time</label>
+                    <select id="dishWaitTime">
+                        <option value="">Not rated</option>
+                        <option value="Fast">⚡ Fast</option>
+                        <option value="OK">👌 OK</option>
+                        <option value="Slow">🐢 Slow</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Visit Date</label>
@@ -8025,7 +8030,7 @@
                         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;font-size:12px;">
                             ${v.tasteRating ? `<span>😋 Taste: ${starsHtml(v.tasteRating, 5)}</span>` : ''}
                             ${v.serviceRating ? `<span>🤝 Service: ${starsHtml(v.serviceRating, 5)}</span>` : ''}
-                            ${v.waitTime ? `<span>🕐 Wait: <strong>${v.waitTime}</strong></span>` : ''}
+                            ${v.waitTime ? `<span>🕐 Wait: <strong>${v.waitTime === 'Fast' ? '⚡ Fast' : v.waitTime === 'Slow' ? '🐢 Slow' : '👌 OK'}</strong></span>` : ''}
                         </div>
                         ${v.comment ? `<div style="font-size:12px;color:#636e72;font-style:italic;">&ldquo;${v.comment}&rdquo;</div>` : ''}
                         ${v.photo ? `<img src="${v.photo}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;">` : ''}
