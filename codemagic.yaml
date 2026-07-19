@@ -55,6 +55,17 @@ workflows:
         script: |
           xcode-project use-profiles
 
+      - name: Inject iOS permission strings
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'This app needs camera access to take photos of restaurants and food items.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'This app needs camera access to take photos of restaurants and food items.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'This app needs photo library access to select photos of restaurants and food items.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'This app needs photo library access to select photos of restaurants and food items.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'This app needs to save photos to your photo library.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'This app needs to save photos to your photo library.'" "$PLIST"
+          echo "✅ Permission strings injected"
+
       - name: Build iOS app
         script: |
           xcode-project build-ipa \
