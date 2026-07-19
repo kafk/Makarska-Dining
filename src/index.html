@@ -7870,12 +7870,14 @@
                             description: item.notes || '',
                             restaurant: restaurant.name,
                             restaurantId: restaurant.id,
+                            foodItemId: item.id,
                             mainCategory: item.category || 'restaurant',
                             category: item.subcategory || 'all',
                             rating: item.foodRating ? item.foodRating * 2 : 0,
                             price: item.price || '',
                             emoji: getCategoryEmoji(item.category),
                             date: item.visitDate,
+                            visits: item.visits || null,
                             isUserAdded: true
                         });
                     });
@@ -8062,7 +8064,62 @@
                         </div>` : ''}
                     </div>
 
-                    <div style="margin-top:16px;">
+                    ${dish.foodItemId ? `
+                    <button onclick="openAddVisitForm()" style="width:100%;padding:11px;margin-bottom:16px;background:linear-gradient(135deg,#ff6b6b,#ff8787);color:white;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">
+                        + Add New Visit
+                    </button>
+                    <div id="addVisitForm" style="display:none;background:#fff8f8;border:1.5px solid #ff6b6b;border-radius:14px;padding:14px;margin-bottom:16px;">
+                        <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:#e55039;">🗓️ New Visit</div>
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Date</label>
+                            <input type="date" id="visitNewDate" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;">
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">😋 Taste</label>
+                            <div id="visitTasteStars" style="font-size:24px;cursor:pointer;">
+                                <span onclick="setVisitStar('taste',1)" id="vts1">☆</span>
+                                <span onclick="setVisitStar('taste',2)" id="vts2">☆</span>
+                                <span onclick="setVisitStar('taste',3)" id="vts3">☆</span>
+                                <span onclick="setVisitStar('taste',4)" id="vts4">☆</span>
+                                <span onclick="setVisitStar('taste',5)" id="vts5">☆</span>
+                            </div>
+                            <input type="hidden" id="visitTasteRating" value="0">
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">🤝 Service</label>
+                            <div id="visitServiceStars" style="font-size:24px;cursor:pointer;">
+                                <span onclick="setVisitStar('service',1)" id="vss1">☆</span>
+                                <span onclick="setVisitStar('service',2)" id="vss2">☆</span>
+                                <span onclick="setVisitStar('service',3)" id="vss3">☆</span>
+                                <span onclick="setVisitStar('service',4)" id="vss4">☆</span>
+                                <span onclick="setVisitStar('service',5)" id="vss5">☆</span>
+                            </div>
+                            <input type="hidden" id="visitServiceRating" value="0">
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">🕐 Wait time</label>
+                            <select id="visitWaitTime" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;">
+                                <option value="">Not rated</option>
+                                <option value="Fast">⚡ Fast</option>
+                                <option value="OK">👌 OK</option>
+                                <option value="Slow">🐢 Slow</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">💰 Cost</label>
+                            <input type="text" id="visitCost" placeholder="e.g., €15" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;box-sizing:border-box;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">📝 Comment</label>
+                            <textarea id="visitComment" placeholder="How was it this time?" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="saveNewVisit(${dish.restaurantId}, ${dish.foodItemId})" style="flex:1;padding:10px;background:#ff6b6b;color:white;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">Save Visit</button>
+                            <button onclick="document.getElementById('addVisitForm').style.display='none'" style="padding:10px 16px;background:#eee;color:#555;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Cancel</button>
+                        </div>
+                    </div>` : ''}
+
+                    <div style="margin-top:4px;">
                         <div style="font-weight:700;font-size:13px;color:#2d3436;margin-bottom:8px;">📋 Visit History</div>
                         ${visitsHtml || '<div style="color:#aaa;font-size:13px;">No visits recorded yet.</div>'}
                     </div>
@@ -8076,6 +8133,85 @@
 
         function closeDishDetail() {
             document.getElementById('dishDetailModal').style.display = 'none';
+        }
+
+        function openAddVisitForm() {
+            const form = document.getElementById('addVisitForm');
+            if (!form) return;
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            // Set today's date
+            const d = document.getElementById('visitNewDate');
+            if (d && !d.value) d.valueAsDate = new Date();
+        }
+
+        function setVisitStar(type, val) {
+            const prefix = type === 'taste' ? 'vts' : 'vss';
+            const hiddenId = type === 'taste' ? 'visitTasteRating' : 'visitServiceRating';
+            document.getElementById(hiddenId).value = val;
+            for (let i = 1; i <= 5; i++) {
+                const el = document.getElementById(prefix + i);
+                if (el) el.textContent = i <= val ? '★' : '☆';
+            }
+        }
+
+        function saveNewVisit(restaurantId, foodItemId) {
+            const date = document.getElementById('visitNewDate').value;
+            if (!date) { alert('Please select a date'); return; }
+            const tasteRating = parseInt(document.getElementById('visitTasteRating').value) || 0;
+            if (!tasteRating) { alert('Please rate the taste'); return; }
+
+            const visitEntry = {
+                date: date,
+                year: new Date(date).getFullYear(),
+                cost: document.getElementById('visitCost').value,
+                tasteRating: tasteRating,
+                serviceRating: parseInt(document.getElementById('visitServiceRating').value) || 0,
+                waitTime: document.getElementById('visitWaitTime').value,
+                comment: document.getElementById('visitComment').value,
+                photo: null
+            };
+
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            if (!restaurant) { alert('Restaurant not found'); return; }
+            const foodItem = restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
+            if (!foodItem) { alert('Food item not found'); return; }
+
+            if (!foodItem.visits) {
+                foodItem.visits = [{
+                    date: foodItem.visitDate || '',
+                    year: foodItem.visitDate ? new Date(foodItem.visitDate).getFullYear() : '',
+                    cost: foodItem.price || '',
+                    tasteRating: foodItem.foodRating || 0,
+                    serviceRating: foodItem.serviceRating || 0,
+                    waitTime: '',
+                    comment: foodItem.notes || '',
+                    photo: foodItem.photo || null
+                }];
+            }
+            foodItem.visits.push(visitEntry);
+            // Update legacy fields with latest visit
+            foodItem.visitDate = date;
+            foodItem.price = visitEntry.cost || foodItem.price;
+            foodItem.foodRating = tasteRating;
+            foodItem.serviceRating = visitEntry.serviceRating || foodItem.serviceRating;
+
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+
+            // Re-open detail with updated data
+            closeDishDetail();
+            setTimeout(() => {
+                const updatedDish = {
+                    name: foodItem.name,
+                    restaurant: restaurant.name,
+                    restaurantId: restaurant.id,
+                    foodItemId: foodItem.id,
+                    mainCategory: foodItem.category,
+                    category: foodItem.subcategory || foodItem.category,
+                    emoji: getCategoryEmoji(foodItem.category),
+                    visits: foodItem.visits
+                };
+                viewDishDetail(updatedDish);
+            }, 100);
         }
 
         function populateMenuReviews() {
