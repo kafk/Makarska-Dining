@@ -58,7 +58,7 @@ workflows:
       - name: Verify ASC key can see the app
         script: |
           echo "Apps visible to this App Store Connect API key:"
-          app-store-connect list-apps --bundle-id com.makarska.dining
+          app-store-connect apps list
 
       - name: Build iOS app
         script: |
