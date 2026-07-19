@@ -54,7 +54,12 @@ workflows:
       - name: Set up code signing
         script: |
           xcode-project use-profiles
-      
+
+      - name: Verify ASC key can see the app
+        script: |
+          echo "Apps visible to this App Store Connect API key:"
+          app-store-connect list-apps --bundle-id com.makarska.dining
+
       - name: Build iOS app
         script: |
           xcode-project build-ipa \
