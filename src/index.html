@@ -8955,12 +8955,12 @@
         // Take photo using Capacitor Camera plugin (native) or file input (browser)
         async function takeNativePhoto(onBase64) {
             try {
-                const { Camera, CameraResultType, CameraSource } = window.Capacitor.Plugins;
+                const { Camera } = window.Capacitor.Plugins;
                 const image = await Camera.getPhoto({
                     quality: 80,
                     allowEditing: false,
-                    resultType: CameraResultType.Base64,
-                    source: CameraSource.Camera
+                    resultType: 'base64',
+                    source: 'CAMERA'
                 });
                 onBase64('data:image/jpeg;base64,' + image.base64String);
             } catch (err) {
@@ -8972,12 +8972,12 @@
 
         async function pickNativePhoto(onBase64) {
             try {
-                const { Camera, CameraResultType, CameraSource } = window.Capacitor.Plugins;
+                const { Camera } = window.Capacitor.Plugins;
                 const image = await Camera.getPhoto({
                     quality: 80,
                     allowEditing: false,
-                    resultType: CameraResultType.Base64,
-                    source: CameraSource.Photos
+                    resultType: 'base64',
+                    source: 'PHOTOS'
                 });
                 onBase64('data:image/jpeg;base64,' + image.base64String);
             } catch (err) {
