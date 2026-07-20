@@ -7565,9 +7565,18 @@
                                 }
                             }
                             return `
-                            <div class="dish-card">
+                            <div class="dish-card" onclick="viewDishDetail({
+                                name: ${JSON.stringify(dish.name)},
+                                restaurant: ${JSON.stringify(restaurant.name)},
+                                restaurantId: ${restaurant.id},
+                                foodItemId: ${dish.id},
+                                category: ${JSON.stringify(dish.subcategory || dish.category || '')},
+                                mainCategory: ${JSON.stringify(dish.category || '')},
+                                emoji: '${getCategoryEmoji(dish.category || 'food')}',
+                                visits: ${JSON.stringify(dish.visits || null)}
+                            })" style="cursor:pointer;">
                                 <div class="dish-image-wrapper">
-                                    ${dish.photo 
+                                    ${dish.photo
                                         ? `<img src="${dish.photo}" alt="${dish.name}" style="width: 100%; height: 100%; object-fit: cover;">`
                                         : `<div class="dish-image">${getCategoryEmoji(dish.category || 'food')}</div>`
                                     }
@@ -7578,7 +7587,7 @@
                                         ${dish.category ? `<div class="dish-meta-item">${getCategoryEmoji(dish.category)} ${dish.category}</div>` : ''}
                                         ${dish.subcategory ? `<div class="dish-meta-item">› ${dish.subcategory}</div>` : ''}
                                     </div>
-                                    <div class="dish-description">${dish.notes || 'No notes'}</div>
+                                    <div class="dish-description">${(dish.visits && dish.visits.length) ? dish.visits[dish.visits.length-1].comment || 'Tap to see visit history' : dish.notes || 'Tap to see details'}</div>
                                     <div class="dish-footer">
                                         <div class="dish-price-info">
                                             <span class="dish-price-label">Price:</span>
@@ -7586,9 +7595,8 @@
                                             ${priceCategory ? `<span class="dish-price-category">${priceCategory}</span>` : ''}
                                         </div>
                                         <div class="dish-rating">
-                                            <span class="dish-rating-label">Rating:</span>
-                                            <span class="dish-rating-emoji">⭐</span>
-                                            <span>${dish.foodRating || 0}/5</span>
+                                            <span class="dish-rating-label">Visits:</span>
+                                            <span>${(dish.visits && dish.visits.length) ? dish.visits.length + '×' : (dish.foodRating ? '⭐ ' + dish.foodRating + '/5' : '-')}</span>
                                         </div>
                                     </div>
                                 </div>
