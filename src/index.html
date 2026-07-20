@@ -6948,6 +6948,13 @@
         (function migrateMainCategory() {
             let needsSave = false;
             restaurants.forEach(restaurant => {
+                // If the restaurant has an explicit category (chosen in the Add form),
+                // that is the source of truth — keep mainCategory in sync with it.
+                if (restaurant.category && restaurant.mainCategory !== restaurant.category) {
+                    restaurant.mainCategory = restaurant.category;
+                    needsSave = true;
+                    return;
+                }
                 if (!restaurant.mainCategory) {
                     // Detect category based on cuisine/name
                     const cuisineLower = (restaurant.cuisine || '').toLowerCase();
@@ -9812,6 +9819,7 @@
                     cuisine: cuisineValue,
                     price: parseInt(priceValue),
                     category: categoryValue,
+                    mainCategory: categoryValue,
                     lat: parseFloat(document.getElementById('lat').value) || 43.2964,
                     lng: parseFloat(document.getElementById('lng').value) || 17.0175,
                     foodRating: 0,
@@ -11120,6 +11128,7 @@
             
             closeAddCategoryModal();
             populateCategoriesList();
+            populateCategoryFilters();
         }
 
         function saveSubcategory() {
