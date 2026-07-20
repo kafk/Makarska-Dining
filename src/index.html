@@ -7704,6 +7704,67 @@
                         <p>${restaurant.notes}</p>
                     </div>
                 ` : ''}
+
+                <!-- MENU PHOTOS SECTION -->
+                <div class="restaurant-photos-section" style="margin-top:16px;">
+                    <div class="restaurant-photos-header">
+                        <h4 class="restaurant-photos-title">📋 Menu Photos (${(restaurant.menuPhotos || []).length})</h4>
+                        <div class="photo-buttons">
+                            <button class="add-photo-btn" onclick="triggerMenuCamera(${id})">
+                                <span>📷</span> Camera
+                            </button>
+                            <button class="add-photo-btn gallery-btn" onclick="triggerMenuGallery(${id})">
+                                <span>🖼️</span> Gallery
+                            </button>
+                        </div>
+                        <input type="file" id="menuCameraInput-${id}" class="photo-upload-input" accept="image/*" capture="environment" onchange="handleMenuPhotoCapture(event, ${id})">
+                        <input type="file" id="menuGalleryInput-${id}" class="photo-upload-input" accept="image/*" onchange="handleMenuPhotoCapture(event, ${id})">
+                    </div>
+                    <div class="photo-gallery">
+                        ${(restaurant.menuPhotos || []).length > 0
+                            ? (restaurant.menuPhotos).map((photo, index) => `
+                                <div class="photo-item" onclick="openMenuPhotoFullscreen('${photo}')">
+                                    <div class="photo-item-image">
+                                        <img src="${photo}" alt="Menu photo ${index + 1}">
+                                    </div>
+                                    <button class="photo-item-delete" onclick="event.stopPropagation(); deleteMenuPhoto(${id}, ${index})">×</button>
+                                </div>
+                            `).join('')
+                            : `<div class="photo-empty">
+                                <div class="photo-empty-icon">📋</div>
+                                <div>No menu photos yet</div>
+                                <div style="margin-top:8px;font-size:12px;">Photograph the menu so you remember what they serve!</div>
+                            </div>`
+                        }
+                    </div>
+                </div>
+
+                <!-- RECEIPT PHOTOS SECTION -->
+                <div style="margin-top:16px;padding:16px;background:#f0fff4;border-radius:14px;border:1px solid #bbf7d0;">
+                    <h4 style="margin:0 0 10px;font-size:14px;font-weight:700;color:#166534;">🧾 Receipt (${(restaurant.receiptPhotos || []).length})</h4>
+                    <div style="display:flex;gap:8px;margin-bottom:10px;">
+                        <button class="add-photo-btn" onclick="triggerReceiptCamera(${id})" style="flex:1;">
+                            <span>📷</span> Camera
+                        </button>
+                        <button class="add-photo-btn gallery-btn" onclick="triggerReceiptGallery(${id})" style="flex:1;">
+                            <span>🖼️</span> Gallery
+                        </button>
+                        <input type="file" id="receiptCameraInput-${id}" class="photo-upload-input" accept="image/*" capture="environment" onchange="handleReceiptPhotoCapture(event, ${id})">
+                        <input type="file" id="receiptGalleryInput-${id}" class="photo-upload-input" accept="image/*" onchange="handleReceiptPhotoCapture(event, ${id})">
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        ${(restaurant.receiptPhotos || []).length > 0
+                            ? (restaurant.receiptPhotos).map((photo, index) => `
+                                <div style="position:relative;width:80px;height:100px;border-radius:8px;overflow:hidden;border:1px solid #86efac;cursor:pointer;" onclick="openMenuPhotoFullscreen('${photo}')">
+                                    <img src="${photo}" style="width:100%;height:100%;object-fit:cover;">
+                                    <button onclick="event.stopPropagation(); deleteReceiptPhoto(${id}, ${index})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;">×</button>
+                                </div>
+                            `).join('')
+                            : `<div style="color:#4ade80;font-size:13px;padding:8px 0;">No receipt photos yet. Photograph your bill to track costs!</div>`
+                        }
+                    </div>
+                </div>
+
                 <button class="delete-btn" onclick="event.stopPropagation(); deleteRestaurant(${id})">Delete Restaurant</button>
             `;
             
@@ -10762,11 +10823,99 @@
 
             restaurant.photos.splice(photoIndex, 1);
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
-            // Sync to Firestore
             saveRestaurantToFirestore(restaurant);
-
-            // Refresh the view
             viewRestaurantWithDishes(restaurantId);
+        }
+
+        // ---- Menu photo functions ----
+        function triggerMenuCamera(id) {
+            if (isNativeApp()) {
+                takeNativePhoto(b64 => saveMenuPhoto(id, b64));
+            } else {
+                document.getElementById('menuCameraInput-' + id).click();
+            }
+        }
+        function triggerMenuGallery(id) {
+            if (isNativeApp()) {
+                pickNativePhoto(b64 => saveMenuPhoto(id, b64));
+            } else {
+                document.getElementById('menuGalleryInput-' + id).click();
+            }
+        }
+        function handleMenuPhotoCapture(event, id) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => { compressImage(e.target.result, 1200, 0.85, b64 => saveMenuPhoto(id, b64)); };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+        function saveMenuPhoto(id, base64) {
+            const restaurant = restaurants.find(r => r.id === id);
+            if (!restaurant) return;
+            if (!restaurant.menuPhotos) restaurant.menuPhotos = [];
+            restaurant.menuPhotos.push(base64);
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            viewRestaurantWithDishes(id);
+        }
+        function deleteMenuPhoto(id, index) {
+            if (!confirm('Delete this menu photo?')) return;
+            const restaurant = restaurants.find(r => r.id === id);
+            if (!restaurant || !restaurant.menuPhotos) return;
+            restaurant.menuPhotos.splice(index, 1);
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            viewRestaurantWithDishes(id);
+        }
+        function openMenuPhotoFullscreen(src) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+            overlay.innerHTML = `<img src="${src}" style="max-width:95vw;max-height:95vh;object-fit:contain;border-radius:8px;">`;
+            overlay.onclick = () => document.body.removeChild(overlay);
+            document.body.appendChild(overlay);
+        }
+
+        // ---- Receipt photo functions ----
+        function triggerReceiptCamera(id) {
+            if (isNativeApp()) {
+                takeNativePhoto(b64 => saveReceiptPhoto(id, b64));
+            } else {
+                document.getElementById('receiptCameraInput-' + id).click();
+            }
+        }
+        function triggerReceiptGallery(id) {
+            if (isNativeApp()) {
+                pickNativePhoto(b64 => saveReceiptPhoto(id, b64));
+            } else {
+                document.getElementById('receiptGalleryInput-' + id).click();
+            }
+        }
+        function handleReceiptPhotoCapture(event, id) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => { compressImage(e.target.result, 1200, 0.85, b64 => saveReceiptPhoto(id, b64)); };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+        function saveReceiptPhoto(id, base64) {
+            const restaurant = restaurants.find(r => r.id === id);
+            if (!restaurant) return;
+            if (!restaurant.receiptPhotos) restaurant.receiptPhotos = [];
+            restaurant.receiptPhotos.push(base64);
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            viewRestaurantWithDishes(id);
+        }
+        function deleteReceiptPhoto(id, index) {
+            if (!confirm('Delete this receipt photo?')) return;
+            const restaurant = restaurants.find(r => r.id === id);
+            if (!restaurant || !restaurant.receiptPhotos) return;
+            restaurant.receiptPhotos.splice(index, 1);
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            viewRestaurantWithDishes(id);
         }
 
         function openPhotoModalByIndex(restaurantId, photoIndex) {
