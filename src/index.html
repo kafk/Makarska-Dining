@@ -9204,6 +9204,9 @@
 
         function openAddFoodModal(preselectedRestaurantId) {
             closeAddChoiceModal();
+            // Close restaurant detail if open (it sits above the food modal)
+            const viewModal = document.getElementById('viewModal');
+            if (viewModal) viewModal.classList.remove('open');
             document.getElementById('addFoodModal').style.display = 'block';
             document.getElementById('foodForm').reset();
             document.querySelectorAll('.star').forEach(star => star.classList.remove('active'));
@@ -10077,10 +10080,17 @@
                 restaurant.visitDate = foodItem.visitDate;
                 
                 localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                // Sync to Firestore
+                saveRestaurantToFirestore(restaurant);
                 
                 loadMarkers();
                 populateSidebar();
                 closeAddFoodModal();
+
+                // Re-open restaurant detail if we came from there
+                if (currentRestaurantId === restaurantId) {
+                    viewRestaurantWithDishes(restaurantId);
+                }
                 
             } catch (error) {
                 alert('Error saving food item: ' + error.message);
