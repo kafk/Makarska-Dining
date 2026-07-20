@@ -6123,13 +6123,41 @@
                     return null;
                 }
 
-                const restaurantsData = [];
-                snapshot.forEach(doc => {
-                    restaurantsData.push(doc.data());
+                const firestoreData = [];
+                snapshot.forEach(doc => { firestoreData.push(doc.data()); });
+
+                // Merge with localStorage to restore local-only photos
+                const localData = JSON.parse(localStorage.getItem('restaurants')) || [];
+                const merged = firestoreData.map(fsR => {
+                    const local = localData.find(l => l.id === fsR.id);
+                    if (!local) return fsR;
+                    // Restore cover photo
+                    if (fsR.coverPhoto === '__local__') fsR.coverPhoto = local.coverPhoto || null;
+                    // Restore food photos
+                    if (fsR.photos && local.photos) fsR.photos = fsR.photos.map((p, i) => {
+                        if (typeof p === 'object' && p.url === '__local__') { p.url = (local.photos[i] && typeof local.photos[i] === 'object') ? local.photos[i].url : (local.photos[i] || p.url); return p; }
+                        return p === '__local__' ? (local.photos[i] || p) : p;
+                    });
+                    // Restore menu/receipt photos
+                    if (fsR.menuPhotos && local.menuPhotos) fsR.menuPhotos = fsR.menuPhotos.map((p, i) => p === '__local__' ? (local.menuPhotos[i] || p) : p);
+                    if (fsR.receiptPhotos && local.receiptPhotos) fsR.receiptPhotos = fsR.receiptPhotos.map((p, i) => p === '__local__' ? (local.receiptPhotos[i] || p) : p);
+                    // Restore food item photos
+                    if (fsR.foodItems && local.foodItems) fsR.foodItems = fsR.foodItems.map((item, i) => {
+                        const li = local.foodItems && local.foodItems[i];
+                        if (!li) return item;
+                        if (item.photo === '__local__') item.photo = li.photo || null;
+                        if (item.visits && li.visits) item.visits = item.visits.map((v, vi) => {
+                            const lv = li.visits && li.visits[vi];
+                            if (lv && v.photo === '__local__') v.photo = lv.photo || null;
+                            return v;
+                        });
+                        return item;
+                    });
+                    return fsR;
                 });
 
-                console.log('Loaded', restaurantsData.length, 'restaurants from Firestore');
-                return restaurantsData;
+                console.log('Loaded', merged.length, 'restaurants from Firestore');
+                return merged;
             } catch (error) {
                 console.error('Error loading from Firestore:', error);
                 return null;
@@ -6138,16 +6166,27 @@
 
         async function saveRestaurantToFirestore(restaurant) {
             try {
-                await db.collection('restaurants').doc(String(restaurant.id)).set(restaurant);
+                // Strip base64 photos before saving to Firestore (1MB document limit)
+                // Photos are kept in localStorage only
+                const firestoreDoc = JSON.parse(JSON.stringify(restaurant));
+                if (firestoreDoc.coverPhoto && firestoreDoc.coverPhoto.startsWith('data:')) firestoreDoc.coverPhoto = '__local__';
+                if (firestoreDoc.photos) firestoreDoc.photos = firestoreDoc.photos.map(p => {
+                    if (typeof p === 'object') { const c = {...p}; if (c.url && c.url.startsWith('data:')) c.url = '__local__'; return c; }
+                    return p && p.startsWith('data:') ? '__local__' : p;
+                });
+                if (firestoreDoc.menuPhotos) firestoreDoc.menuPhotos = firestoreDoc.menuPhotos.map(p => p && p.startsWith('data:') ? '__local__' : p);
+                if (firestoreDoc.receiptPhotos) firestoreDoc.receiptPhotos = firestoreDoc.receiptPhotos.map(p => p && p.startsWith('data:') ? '__local__' : p);
+                if (firestoreDoc.foodItems) firestoreDoc.foodItems = firestoreDoc.foodItems.map(item => {
+                    const i = {...item};
+                    if (i.photo && i.photo.startsWith('data:')) i.photo = '__local__';
+                    if (i.visits) i.visits = i.visits.map(v => { const vv = {...v}; if (vv.photo && vv.photo.startsWith('data:')) vv.photo = '__local__'; return vv; });
+                    return i;
+                });
+                await db.collection('restaurants').doc(String(restaurant.id)).set(firestoreDoc);
                 console.log('☁️ Saved to Firestore:', restaurant.name);
                 return true;
             } catch (error) {
                 console.error('❌ Error saving', restaurant.name, 'to Firestore:', error.message);
-                // Check if it's a size issue
-                const dataSize = JSON.stringify(restaurant).length;
-                if (dataSize > 900000) {
-                    console.warn('Document too large:', Math.round(dataSize/1024), 'KB (limit is ~1MB). Try removing photos.');
-                }
                 return false;
             }
         }
@@ -11476,12 +11515,16 @@
             // Reload groups from localStorage
             userGroups = initializeGroups();
             
+            // Sync restaurants from Firestore (merges with localStorage photos)
+            initFirestoreSync().then(() => {
+                loadMarkers();
+                populateSidebar();
+            }).catch(() => {});
+
             if (userGroups.length > 0) {
-                // User has groups, go directly to Groups List
-                currentGroupId = userGroups[0].id; // Set first group as current
+                currentGroupId = userGroups[0].id;
                 showGroupsList();
             } else {
-                // No groups, show Empty State
                 showEmptyState();
             }
         }
