@@ -7022,6 +7022,7 @@
         })();
 
         let currentRestaurantId = null;
+        let _dishDetailLookup = {}; // stores dish objects keyed by dish.id for safe onclick refs
         let selectedLocation = null;
         let currentPinStyle = localStorage.getItem('pinStyle') || 'float-card';
         let selectedPinType = currentPinStyle;
@@ -7604,17 +7605,19 @@
                                     else priceCategory = '(Premium)';
                                 }
                             }
+                            const dishKey = 'r' + restaurant.id + '_d' + dish.id;
+                            _dishDetailLookup[dishKey] = {
+                                name: dish.name,
+                                restaurant: restaurant.name,
+                                restaurantId: restaurant.id,
+                                foodItemId: dish.id,
+                                category: dish.subcategory || dish.category || '',
+                                mainCategory: dish.category || '',
+                                emoji: getCategoryEmoji(dish.category || 'food'),
+                                visits: dish.visits || null
+                            };
                             return `
-                            <div class="dish-card" onclick="viewDishDetail({
-                                name: ${JSON.stringify(dish.name)},
-                                restaurant: ${JSON.stringify(restaurant.name)},
-                                restaurantId: ${restaurant.id},
-                                foodItemId: ${dish.id},
-                                category: ${JSON.stringify(dish.subcategory || dish.category || '')},
-                                mainCategory: ${JSON.stringify(dish.category || '')},
-                                emoji: '${getCategoryEmoji(dish.category || 'food')}',
-                                visits: ${JSON.stringify(dish.visits || null)}
-                            })" style="cursor:pointer;">
+                            <div class="dish-card" onclick="viewDishDetail(_dishDetailLookup['${dishKey}'])" style="cursor:pointer;">
                                 <div class="dish-image-wrapper">
                                     ${dish.photo
                                         ? `<img src="${dish.photo}" alt="${dish.name}" style="width: 100%; height: 100%; object-fit: cover;">`
