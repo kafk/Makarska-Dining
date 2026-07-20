@@ -7591,6 +7591,7 @@
                 dishesHtml = `
                     <div class="restaurant-dishes-section">
                         <h4 class="restaurant-dishes-title">Added Dishes (${restaurantDishes.length})</h4>
+                        <button onclick="openAddFoodModal(${id})" style="width:100%;padding:10px;margin-bottom:12px;background:linear-gradient(135deg,#ff6b6b,#ff8787);color:white;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">+ Add Dish</button>
                         ${restaurantDishes.map(dish => {
                             // Determine price category
                             let priceCategory = '';
@@ -7647,7 +7648,8 @@
                 dishesHtml = `
                     <div class="restaurant-dishes-section">
                         <h4 class="restaurant-dishes-title">Added Dishes</h4>
-                        <p style="color: #999; font-size: 14px; text-align: center; padding: 16px 0;">No dishes added yet. Use the Food Items tab to add dishes!</p>
+                        <button onclick="openAddFoodModal(${id})" style="width:100%;padding:10px;margin-bottom:12px;background:linear-gradient(135deg,#ff6b6b,#ff8787);color:white;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">+ Add Dish</button>
+                        <p style="color: #999; font-size: 14px; text-align: center; padding: 8px 0;">No dishes added yet.</p>
                     </div>
                 `;
             }
@@ -9200,7 +9202,7 @@
             if (galleryInput) galleryInput.value = '';
         }
 
-        function openAddFoodModal() {
+        function openAddFoodModal(preselectedRestaurantId) {
             closeAddChoiceModal();
             document.getElementById('addFoodModal').style.display = 'block';
             document.getElementById('foodForm').reset();
@@ -9216,6 +9218,10 @@
             restaurants.forEach(r => {
                 select.innerHTML += `<option value="${r.id}">${r.name}</option>`;
             });
+
+            // Pre-select restaurant if coming from restaurant detail
+            const preId = preselectedRestaurantId || currentRestaurantId;
+            if (preId) select.value = preId;
             
             // Populate category dropdown
             const catSelect = document.getElementById('foodCategory');
