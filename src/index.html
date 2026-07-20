@@ -9250,15 +9250,30 @@
                 map.setView([restaurant.lat, restaurant.lng], 17);
             }
             
-            map.once('click', function(e) {
+            map.once('click', async function(e) {
                 if (editingLocationId) {
                     const r = restaurants.find(r => r.id === editingLocationId);
                     if (r) {
                         r.lat = e.latlng.lat;
                         r.lng = e.latlng.lng;
-                        saveRestaurants();
+
+                        // Always persist locally first
+                        localStorage.setItem('restaurants', JSON.stringify(restaurants));
                         loadMarkers();
-                        alert(`✅ Pin för "${r.name}" har flyttats!\n\nAdress: ${r.address || 'Ej angiven'}`);
+
+                        // Save ONLY this restaurant to Firestore as a single document.
+                        // (The bulk batch save is all-or-nothing — one oversized restaurant
+                        //  doc would silently fail the whole batch and the move would be lost.)
+                        let cloudOk = true;
+                        if (typeof saveRestaurantToFirestore === 'function') {
+                            cloudOk = await saveRestaurantToFirestore(r);
+                        }
+
+                        if (cloudOk) {
+                            alert(`✅ Pin för "${r.name}" har flyttats och sparats!\n\nAdress: ${r.address || 'Ej angiven'}`);
+                        } else {
+                            alert(`⚠️ Pin för "${r.name}" flyttades lokalt men kunde INTE sparas i molnet.\n\nTroligen har den här platsen för stora bilder (Firestore-gräns ~1MB). Ta bort eller komprimera bilder och flytta pinnen igen, annars kan ändringen försvinna vid omladdning.`);
+                        }
                     }
                     cancelLocationEdit();
                 }
