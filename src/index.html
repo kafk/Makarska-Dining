@@ -8386,15 +8386,77 @@
             const restaurant = restaurants.find(r => r.id === restaurantId);
             const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
             if (!item) return;
-            const newName = prompt('Dish name:', item.name);
-            if (newName && newName.trim() && newName.trim() !== item.name) {
-                item.name = newName.trim();
-                localStorage.setItem('restaurants', JSON.stringify(restaurants));
-                saveRestaurantToFirestore(restaurant);
-                // Refresh dish detail
-                closeDishDetail();
-                setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null }), 100);
-            }
+
+            // Build category options
+            const catOptions = getAllCategories().map(c =>
+                `<option value="${c.id}" ${(item.category || '') === c.id ? 'selected' : ''}>${c.emoji} ${c.name}</option>`
+            ).join('');
+
+            // Build subcategory options for current category
+            const currentCatSubs = (JSON.parse(localStorage.getItem('customSubcategories')) || [])
+                .filter(s => s.parentId === item.category || s.categoryId === item.category);
+
+            const subOptions = currentCatSubs.length
+                ? `<option value="">No subcategory</option>` + currentCatSubs.map(s =>
+                    `<option value="${s.id}" ${(item.subcategory || '') === s.id ? 'selected' : ''}>${(s.emoji||'')} ${s.name||s.label}</option>`
+                  ).join('')
+                : `<option value="">No subcategory</option>`;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:70000;display:flex;align-items:flex-end;justify-content:center;';
+            overlay.innerHTML = `
+                <div style="background:white;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:540px;max-height:85vh;overflow-y:auto;">
+                    <div style="font-weight:700;font-size:16px;margin-bottom:16px;">✏️ Edit Dish</div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Dish Name</label>
+                        <input type="text" id="ei_name" value="${item.name || ''}" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;box-sizing:border-box;">
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Category</label>
+                        <select id="ei_category" onchange="refreshEditItemSubs(${restaurantId},${foodItemId})" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;height:44px;box-sizing:border-box;">
+                            <option value="">Choose category...</option>
+                            ${catOptions}
+                        </select>
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Subcategory</label>
+                        <select id="ei_subcategory" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px;height:44px;box-sizing:border-box;">
+                            ${subOptions}
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:8px;padding-bottom:env(safe-area-inset-bottom);">
+                        <button onclick="saveEditFoodItem(${restaurantId},${foodItemId},this.closest('div[style*=inset]'))" style="flex:1;padding:12px;background:#ff6b6b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Save</button>
+                        <button onclick="this.closest('div[style*=inset]').remove()" style="padding:12px 20px;background:#eee;color:#555;border:none;border-radius:10px;cursor:pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        }
+
+        function refreshEditItemSubs(restaurantId, foodItemId) {
+            const catId = document.getElementById('ei_category').value;
+            const subSel = document.getElementById('ei_subcategory');
+            const subs = (JSON.parse(localStorage.getItem('customSubcategories')) || [])
+                .filter(s => s.parentId === catId || s.categoryId === catId);
+            subSel.innerHTML = `<option value="">No subcategory</option>` +
+                subs.map(s => `<option value="${s.id}">${(s.emoji||'')} ${s.name||s.label}</option>`).join('');
+        }
+
+        function saveEditFoodItem(restaurantId, foodItemId, overlayEl) {
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
+            if (!item) return;
+            const newName = document.getElementById('ei_name').value.trim();
+            if (!newName) { alert('Please enter a name'); return; }
+            item.name = newName;
+            item.category = document.getElementById('ei_category').value || item.category;
+            item.subcategory = document.getElementById('ei_subcategory').value;
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            if (overlayEl) overlayEl.remove();
+            closeDishDetail();
+            setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null }), 100);
         }
 
         function editVisit(restaurantId, foodItemId, visitIndex) {
