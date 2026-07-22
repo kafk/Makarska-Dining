@@ -6000,6 +6000,8 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
         const storage = firebase.storage();
+        // Cap Storage retry times so a missing/misconfigured bucket can never hang a photo save.
+        try { storage.setMaxUploadRetryTime(8000); storage.setMaxOperationRetryTime(8000); } catch (e) {}
 
         // Upload a base64 image to Firebase Storage and return the download URL
         async function uploadPhoto(base64DataUrl, storagePath) {
@@ -6013,11 +6015,18 @@
                 const blob = new Blob([arr], { type: mime });
 
                 const ref = storage.ref(storagePath);
-                await ref.put(blob, { contentType: mime });
-                return await ref.getDownloadURL();
+                // Race the upload against a hard timeout so photo saving never stalls if
+                // Storage is unreachable or not enabled — we fall back to base64 instead.
+                const doUpload = (async () => {
+                    await ref.put(blob, { contentType: mime });
+                    return await ref.getDownloadURL();
+                })();
+                const timeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Storage upload timed out')), 10000));
+                return await Promise.race([doUpload, timeout]);
             } catch (err) {
-                console.warn('Storage upload failed, falling back to base64:', err.message);
-                return base64DataUrl; // fall back: save base64 locally
+                console.warn('Storage upload failed, saving photo locally instead:', err && err.message);
+                return base64DataUrl; // fall back: save base64 (works offline / if Storage not enabled)
             }
         }
 
@@ -9459,7 +9468,9 @@
                     resultType: 'base64',
                     source: 'CAMERA'
                 });
-                onBase64('data:image/jpeg;base64,' + image.base64String);
+                // Compress before saving so the photo fits Firestore's 1MB doc limit when
+                // Storage isn't available (base64 fallback) and uploads faster when it is.
+                compressImage('data:image/jpeg;base64,' + image.base64String, 800, 0.8, onBase64);
             } catch (err) {
                 if (err && err.message !== 'User cancelled photos app') {
                     alert('Could not open camera: ' + (err.message || err));
@@ -9476,7 +9487,9 @@
                     resultType: 'base64',
                     source: 'PHOTOS'
                 });
-                onBase64('data:image/jpeg;base64,' + image.base64String);
+                // Compress before saving so the photo fits Firestore's 1MB doc limit when
+                // Storage isn't available (base64 fallback) and uploads faster when it is.
+                compressImage('data:image/jpeg;base64,' + image.base64String, 800, 0.8, onBase64);
             } catch (err) {
                 if (err && err.message !== 'User cancelled photos app') {
                     alert('Could not open photos: ' + (err.message || err));
