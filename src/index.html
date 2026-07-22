@@ -9906,8 +9906,9 @@
                 groups[g].push(s);
             });
 
-            // Default (non-custom) buttons without group headers
-            defaults.filter(s => s.id !== 'all').forEach(sub => {
+            // Default (non-custom) buttons without group headers — skip if overridden by a custom sub with same ID
+            const customIds = new Set(custom.map(s => s.id));
+            defaults.filter(s => s.id !== 'all' && !customIds.has(s.id)).forEach(sub => {
                 html += `<button class="filter-subcategory-btn" data-subcategory="${sub.id}" onclick="selectFilterSubcategory('${sub.id}')">${sub.label}</button>`;
             });
 
@@ -11334,10 +11335,12 @@
             const container = document.getElementById('subcategoriesList');
             
             // Get all subcategories from filterSubcategories and custom
+            // Custom subs override defaults with the same ID
+            const customSubIds = new Set(customSubcategories.map(s => s.id + '|' + (s.categoryId || s.parentId)));
             let allSubs = [];
             Object.keys(filterSubcategories).forEach(catId => {
                 filterSubcategories[catId].forEach(sub => {
-                    if (sub.id !== 'all') {
+                    if (sub.id !== 'all' && !customSubIds.has(sub.id + '|' + catId)) {
                         allSubs.push({ ...sub, categoryId: catId, isDefault: true });
                     }
                 });
