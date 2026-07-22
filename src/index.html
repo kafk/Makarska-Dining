@@ -9018,66 +9018,87 @@
         });
         
         function showSearchSuggestions(searchTerm) {
-            const matchingRestaurants = restaurants.filter(r => 
-                r.name.toLowerCase().includes(searchTerm) ||
-                r.cuisine.toLowerCase().includes(searchTerm) ||
-                r.notes.toLowerCase().includes(searchTerm)
+            const q = searchTerm.toLowerCase();
+
+            // Restaurants — name, cuisine, category, notes
+            const matchingRestaurants = restaurants.filter(r =>
+                r.name.toLowerCase().includes(q) ||
+                (r.cuisine || '').toLowerCase().includes(q) ||
+                (r.mainCategory || '').toLowerCase().includes(q) ||
+                (r.notes || '').toLowerCase().includes(q)
             ).slice(0, 5);
-            
-            // Get matching cuisines
+
+            // Cuisines
             const allCuisines = [...new Set(restaurants.map(r => r.cuisine))];
-            const matchingCuisines = allCuisines.filter(c => 
-                c.toLowerCase().includes(searchTerm)
-            ).slice(0, 3);
-            
-            // Get matching food items from photos
+            const matchingCuisines = allCuisines.filter(c => c.toLowerCase().includes(q)).slice(0, 2);
+
+            // Food items — name, category, subcategory, notes/comments
             let matchingDishes = [];
             restaurants.forEach(r => {
-                if (r.photos) {
-                    r.photos.forEach(photo => {
-                        if (typeof photo === 'object' && photo.dishName && 
-                            photo.dishName.toLowerCase().includes(searchTerm)) {
+                // From foodItems array
+                if (r.foodItems) {
+                    r.foodItems.forEach(item => {
+                        if (item.name.toLowerCase().includes(q) ||
+                            (item.category || '').toLowerCase().includes(q) ||
+                            (item.subcategory || '').toLowerCase().includes(q) ||
+                            (item.notes || '').toLowerCase().includes(q) ||
+                            (item.visits || []).some(v => (v.comment || '').toLowerCase().includes(q))
+                        ) {
                             matchingDishes.push({
-                                ...photo,
+                                dishName: item.name,
+                                url: item.photo || null,
+                                rating: item.foodRating || 0,
+                                category: item.category,
+                                subcategory: item.subcategory,
                                 restaurantName: r.name,
-                                restaurantId: r.id
+                                restaurantId: r.id,
+                                foodItemId: item.id
                             });
                         }
                     });
                 }
+                // From photos array
+                if (r.photos) {
+                    r.photos.forEach(photo => {
+                        if (typeof photo === 'object' && photo.dishName &&
+                            (photo.dishName.toLowerCase().includes(q) ||
+                             (photo.category || '').toLowerCase().includes(q) ||
+                             (photo.subcategory || '').toLowerCase().includes(q) ||
+                             (photo.caption || '').toLowerCase().includes(q))
+                        ) {
+                            matchingDishes.push({ ...photo, restaurantName: r.name, restaurantId: r.id });
+                        }
+                    });
+                }
             });
-            matchingDishes = matchingDishes.slice(0, 3);
-            
+            matchingDishes = matchingDishes.slice(0, 4);
+
             if (matchingRestaurants.length === 0 && matchingCuisines.length === 0 && matchingDishes.length === 0) {
                 hideSearchDropdown();
                 return;
             }
-            
+
             let html = '';
-            
+
             // Restaurants section
             if (matchingRestaurants.length > 0) {
                 html += '<div class="search-dropdown-section">Restaurants</div>';
                 matchingRestaurants.forEach(r => {
-                    const cuisineEmoji = getCuisineEmoji(r.cuisine);
-                    const imageContent = r.coverPhoto 
-                        ? `<img src="${r.coverPhoto}" alt="${r.name}">`
-                        : cuisineEmoji;
+                    const imageContent = r.coverPhoto ? `<img src="${r.coverPhoto}" alt="${r.name}">` : getCuisineEmoji(r.cuisine);
                     html += `
                         <div class="search-dropdown-item" onclick="selectSearchRestaurant(${r.id})">
                             <div class="search-dropdown-item-icon">${imageContent}</div>
                             <div class="search-dropdown-item-info">
-                                <div class="search-dropdown-item-name">${highlightMatch(r.name, searchTerm)}</div>
+                                <div class="search-dropdown-item-name">${highlightMatch(r.name, q)}</div>
                                 <div class="search-dropdown-item-meta">
                                     <span>${r.cuisine}</span>
                                     <span>⭐ ${((r.foodRating + r.serviceRating) / 2).toFixed(1)}</span>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 });
             }
-            
+
             // Cuisines section
             if (matchingCuisines.length > 0) {
                 html += '<div class="search-dropdown-section">Cuisines</div>';
@@ -9087,35 +9108,30 @@
                         <div class="search-dropdown-item" onclick="selectSearchCuisine('${c}')">
                             <div class="search-dropdown-item-icon">${getCuisineEmoji(c)}</div>
                             <div class="search-dropdown-item-info">
-                                <div class="search-dropdown-item-name">${highlightMatch(c, searchTerm)}</div>
-                                <div class="search-dropdown-item-meta">
-                                    <span>${count} restaurant${count !== 1 ? 's' : ''}</span>
-                                </div>
+                                <div class="search-dropdown-item-name">${highlightMatch(c, q)}</div>
+                                <div class="search-dropdown-item-meta"><span>${count} restaurant${count !== 1 ? 's' : ''}</span></div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 });
             }
-            
-            // Dishes section
+
+            // Food items section
             if (matchingDishes.length > 0) {
                 html += '<div class="search-dropdown-section">Food Items</div>';
                 matchingDishes.forEach(d => {
+                    const icon = d.url ? `<img src="${d.url}" alt="${d.dishName}">` : `<span style="font-size:20px;">${getCategoryEmoji(d.category)}</span>`;
+                    const meta = [d.category, d.subcategory, d.restaurantName].filter(Boolean).join(' · ');
                     html += `
                         <div class="search-dropdown-item" onclick="selectSearchDish(${d.restaurantId})">
-                            <div class="search-dropdown-item-icon"><img src="${d.url}" alt="${d.dishName}"></div>
+                            <div class="search-dropdown-item-icon">${icon}</div>
                             <div class="search-dropdown-item-info">
-                                <div class="search-dropdown-item-name">${highlightMatch(d.dishName, searchTerm)}</div>
-                                <div class="search-dropdown-item-meta">
-                                    <span>📍 ${d.restaurantName}</span>
-                                    <span>⭐ ${d.rating}/5</span>
-                                </div>
+                                <div class="search-dropdown-item-name">${highlightMatch(d.dishName, q)}</div>
+                                <div class="search-dropdown-item-meta"><span>${meta}</span></div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 });
             }
-            
+
             searchDropdown.innerHTML = html;
             searchDropdown.classList.add('show');
             activeDropdownIndex = -1;
