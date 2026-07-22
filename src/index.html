@@ -3290,13 +3290,32 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            color: #999;
-            font-size: 14px;
+            color: #b2bec3;
+            font-size: 13px;
+            width: 100%;
+            height: 100%;
+            background: #f1f3f5;
         }
 
         .food-photo-empty span:first-child {
             font-size: 32px;
+        }
+
+        /* Universal image placeholder */
+        .img-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f3f5;
+            width: 100%;
+            height: 100%;
+        }
+        .img-placeholder svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.35;
         }
 
         .food-photo-buttons {
@@ -5677,7 +5696,7 @@
                     <div class="food-photo-section">
                         <div class="food-photo-preview" id="restaurantPhotoPreview">
                             <div class="food-photo-empty">
-                                <span>🏪</span>
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#b2bec3" stroke-width="1.5"/><circle cx="8.5" cy="9.5" r="1.5" fill="#b2bec3"/><path d="M3 16l4.5-5 3.5 4 2.5-2.5 4 5" stroke="#b2bec3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 <span>No photo added</span>
                             </div>
                         </div>
@@ -5781,7 +5800,7 @@
                     <div class="food-photo-section">
                         <div class="food-photo-preview" id="foodPhotoPreview">
                             <div class="food-photo-empty">
-                                <span>📷</span>
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#b2bec3" stroke-width="1.5"/><circle cx="8.5" cy="9.5" r="1.5" fill="#b2bec3"/><path d="M3 16l4.5-5 3.5 4 2.5-2.5 4 5" stroke="#b2bec3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 <span>No photo added</span>
                             </div>
                         </div>
@@ -7605,7 +7624,7 @@
                     <div class="restaurant-image-wrapper ${hasCoverPhoto ? 'has-photo' : ''}">
                         ${hasCoverPhoto 
                             ? `<img src="${restaurant.coverPhoto}" alt="${restaurant.name}" class="restaurant-cover-img">`
-                            : cuisineEmoji
+                            : imgPlaceholder()
                         }
                     </div>
                     <div class="restaurant-card-info">
@@ -7668,7 +7687,9 @@
                 `;
             } else {
                 heroEl.innerHTML = `
-                    <span class="restaurant-detail-hero-emoji">${cuisineEmoji}</span>
+                    <div style="width:100%;height:100%;background:#f1f3f5;display:flex;align-items:center;justify-content:center;">
+                        <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.3;"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#9aa0a6" stroke-width="1.5"/><circle cx="8.5" cy="9.5" r="1.5" fill="#9aa0a6"/><path d="M3 16l4.5-5 3.5 4 2.5-2.5 4 5" stroke="#9aa0a6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
                     <div class="restaurant-detail-hero-overlay"></div>
                     <div class="restaurant-detail-hero-name">${restaurant.name}</div>
                     <div class="hero-photo-buttons">
@@ -7714,7 +7735,7 @@
                                 <div class="dish-image-wrapper">
                                     ${dish.photo
                                         ? `<img src="${dish.photo}" alt="${dish.name}" style="width: 100%; height: 100%; object-fit: cover;">`
-                                        : `<div class="dish-image">${getCategoryEmoji(dish.category || 'food')}</div>`
+                                        : `<div class="dish-image-wrapper" style="background:#f1f3f5;">${imgPlaceholder()}</div>`
                                     }
                                 </div>
                                 <div class="dish-info">
@@ -8140,7 +8161,7 @@
                     // Use image if available, otherwise emoji
                     const imageContent = dish.imageUrl 
                         ? `<img src="${dish.imageUrl}" alt="${dish.name}" style="width: 100%; height: 100%; object-fit: cover;">`
-                        : `<div class="dish-image">${dish.emoji}</div>`;
+                        : imgPlaceholder();
                     
                     card.innerHTML = `
                         <div class="dish-image-wrapper">
@@ -8172,6 +8193,10 @@
             }
         }
         
+        function imgPlaceholder() {
+            return `<div class="img-placeholder"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#9aa0a6" stroke-width="1.5"/><circle cx="8.5" cy="9.5" r="1.5" fill="#9aa0a6"/><path d="M3 16l4.5-5 3.5 4 2.5-2.5 4 5" stroke="#9aa0a6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+        }
+
         function getCategoryEmoji(category) {
             const emojis = {
                 'restaurant': '🍽️',
