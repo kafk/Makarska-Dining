@@ -5982,6 +5982,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script>
         // Firebase configuration
         const firebaseConfig = {
@@ -5998,6 +5999,26 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
+        const storage = firebase.storage();
+
+        // Upload a base64 image to Firebase Storage and return the download URL
+        async function uploadPhoto(base64DataUrl, storagePath) {
+            try {
+                const ref = storage.ref(storagePath);
+                const response = await fetch(base64DataUrl);
+                const blob = await response.blob();
+                await ref.put(blob, { contentType: 'image/jpeg' });
+                return await ref.getDownloadURL();
+            } catch (err) {
+                console.error('Storage upload failed:', err.message);
+                // Fall back to base64 if upload fails (e.g. offline)
+                return base64DataUrl;
+            }
+        }
+
+        function storagePhotoPath(restaurantId, type, name) {
+            return `restaurants/${restaurantId}/${type}/${name}`;
+        }
 
         // Current user state
         let currentUser = null;
@@ -8533,18 +8554,19 @@
             }
         }
 
-        function saveDishPhoto(base64) {
+        async function saveDishPhoto(base64) {
             if (!_dishPhotoTarget) return;
             const { restaurantId, foodItemId } = _dishPhotoTarget;
             const restaurant = restaurants.find(r => r.id === restaurantId);
             const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
             if (!item) return;
-            item.photo = base64;
+            const url = await uploadPhoto(base64, storagePhotoPath(restaurantId, `food/${foodItemId}`, 'cover.jpg'));
+            item.photo = url;
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
             saveRestaurantToFirestore(restaurant);
             _dishPhotoTarget = null;
             closeDishDetail();
-            setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null }), 100);
+            setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null, photo: item.photo }), 100);
         }
 
         function openAddVisitForm() {
@@ -10339,7 +10361,7 @@
             }
         }
 
-        function saveRestaurant(e) {
+        async function saveRestaurant(e) {
             if (e) e.preventDefault();
 
             const nameValue = document.getElementById('name').value;
@@ -10351,10 +10373,12 @@
             if (!categoryValue) { alert('Please choose a place category'); return; }
 
             try {
-                const restaurantPhotoData = document.getElementById('restaurantPhotoData').value;
+                const rawPhotoData = document.getElementById('restaurantPhotoData').value;
+                const restaurantPhotoData = rawPhotoData && rawPhotoData.startsWith('data:')
+                    ? await uploadPhoto(rawPhotoData, storagePhotoPath('new_' + Date.now(), 'cover', 'cover.jpg'))
+                    : rawPhotoData || null;
 
                 if (_editingRestaurantId) {
-                    // UPDATE existing restaurant
                     const r = restaurants.find(x => x.id === _editingRestaurantId);
                     if (!r) return;
                     r.name = nameValue.trim();
@@ -10376,8 +10400,14 @@
                 }
 
                 // CREATE new restaurant
+                const newId = Date.now();
+                // Re-upload with correct restaurantId in path if needed
+                const coverUrl = rawPhotoData && rawPhotoData.startsWith('data:')
+                    ? await uploadPhoto(rawPhotoData, storagePhotoPath(newId, 'cover', 'cover.jpg'))
+                    : rawPhotoData || null;
+
                 const restaurant = {
-                    id: Date.now(),
+                    id: newId,
                     name: nameValue.trim(),
                     cuisine: cuisineValue,
                     price: parseInt(priceValue),
@@ -10391,9 +10421,9 @@
                     notes: '',
                     foodItems: [],
                     photos: [],
-                    coverPhoto: restaurantPhotoData || null
+                    coverPhoto: coverUrl
                 };
-                
+
                 restaurants.push(restaurant);
 
                 try {
@@ -10421,7 +10451,7 @@
             saveRestaurant(e);
         });
 
-        function saveFoodItem(e) {
+        async function saveFoodItem(e) {
             if (e) e.preventDefault();
             
             const restaurantId = parseInt(document.getElementById('foodRestaurant').value);
@@ -10431,32 +10461,20 @@
             const foodRating = parseInt(document.getElementById('foodRating').value) || 0;
             const visitDate = document.getElementById('visitDate').value;
             
-            // Validation
-            if (!restaurantId) {
-                alert('Please select a restaurant');
-                return;
-            }
-            if (!category) {
-                alert('Please select a category');
-                return;
-            }
-            if (!dishName) {
-                alert('Please enter a dish name');
-                return;
-            }
-            if (!visitDate) {
-                alert('Please select a visit date');
-                return;
-            }
+            if (!restaurantId) { alert('Please select a restaurant'); return; }
+            if (!category) { alert('Please select a category'); return; }
+            if (!dishName) { alert('Please enter a dish name'); return; }
+            if (!visitDate) { alert('Please select a visit date'); return; }
             
             const restaurant = restaurants.find(r => r.id === restaurantId);
-            if (!restaurant) {
-                alert('Restaurant not found');
-                return;
-            }
+            if (!restaurant) { alert('Restaurant not found'); return; }
             
             try {
-                const foodPhotoData = document.getElementById('foodPhotoData').value;
+                const rawPhoto = document.getElementById('foodPhotoData').value;
+                const foodItemId = Date.now();
+                const photoUrl = rawPhoto && rawPhoto.startsWith('data:')
+                    ? await uploadPhoto(rawPhoto, storagePhotoPath(restaurantId, `food/${foodItemId}`, 'cover.jpg'))
+                    : rawPhoto || null;
                 
                 const visitEntry = {
                     date: visitDate,
@@ -10466,35 +10484,30 @@
                     serviceRating: parseInt(document.getElementById('serviceRating').value) || 0,
                     waitTime: document.getElementById('dishWaitTime').value,
                     comment: document.getElementById('foodNotes').value,
-                    photo: foodPhotoData || null
+                    photo: photoUrl
                 };
 
                 const foodItem = {
-                    id: Date.now(),
+                    id: foodItemId,
                     name: dishName,
                     category: category,
                     subcategory: subcategory,
                     visits: [visitEntry],
-                    // legacy fields kept for compatibility
                     price: visitEntry.cost,
                     foodRating: foodRating,
                     serviceRating: parseInt(document.getElementById('serviceRating').value) || 0,
                     visitDate: visitDate,
                     notes: visitEntry.comment,
-                    photo: foodPhotoData || null
+                    photo: photoUrl
                 };
                 
-                if (!restaurant.foodItems) {
-                    restaurant.foodItems = [];
-                }
+                if (!restaurant.foodItems) restaurant.foodItems = [];
                 restaurant.foodItems.push(foodItem);
                 
-                if (foodPhotoData) {
-                    if (!restaurant.photos) {
-                        restaurant.photos = [];
-                    }
+                if (photoUrl) {
+                    if (!restaurant.photos) restaurant.photos = [];
                     restaurant.photos.push({
-                        url: foodPhotoData,
+                        url: photoUrl,
                         rating: foodItem.foodRating,
                         category: category,
                         subcategory: subcategory,
@@ -10741,12 +10754,11 @@
                 reader.onload = function(e) {
                     try {
                         // Compress and save
-                        compressImage(e.target.result, 800, 0.8, function(compressedImage) {
+                        compressImage(e.target.result, 800, 0.8, async function(compressedImage) {
                             const restaurant = restaurants.find(r => r.id === restaurantId);
                             if (!restaurant) return;
-
-                            // Update cover photo
-                            restaurant.coverPhoto = compressedImage;
+                            const url = await uploadPhoto(compressedImage, storagePhotoPath(restaurantId, 'cover', 'cover.jpg'));
+                            restaurant.coverPhoto = url;
                             localStorage.setItem('restaurants', JSON.stringify(restaurants));
 
                             // Refresh the view
@@ -11186,42 +11198,24 @@
             currentPhotoRating = 0;
         }
 
-        function savePhotoWithRating() {
+        async function savePhotoWithRating() {
             const categoryId = document.getElementById('photoCategory').value;
             const dishName = document.getElementById('photoDishName').value.trim();
             
-            if (!categoryId) {
-                alert('Please select a category');
-                return;
-            }
-            if (!dishName) {
-                alert('Please enter a name');
-                return;
-            }
-            if (currentPhotoRating === 0) {
-                alert('Please give a rating');
-                return;
-            }
-            
-            if (!pendingPhotoData || !pendingPhotoRestaurantId) {
-                alert('Error: No photo data');
-                return;
-            }
+            if (!categoryId) { alert('Please select a category'); return; }
+            if (!dishName) { alert('Please enter a name'); return; }
+            if (currentPhotoRating === 0) { alert('Please give a rating'); return; }
+            if (!pendingPhotoData || !pendingPhotoRestaurantId) { alert('Error: No photo data'); return; }
 
             const restaurant = restaurants.find(r => r.id === pendingPhotoRestaurantId);
-            if (!restaurant) {
-                alert('Error: Restaurant not found');
-                return;
-            }
+            if (!restaurant) { alert('Error: Restaurant not found'); return; }
+            if (!restaurant.photos) restaurant.photos = [];
 
-            // Initialize photos array if not exists
-            if (!restaurant.photos) {
-                restaurant.photos = [];
-            }
+            const ts = Date.now();
+            const url = await uploadPhoto(pendingPhotoData, storagePhotoPath(pendingPhotoRestaurantId, 'photos', `${ts}.jpg`));
 
-            // Create photo object with metadata
             const photoObject = {
-                url: pendingPhotoData,
+                url: url,
                 rating: currentPhotoRating,
                 category: categoryId,
                 subcategory: document.getElementById('photoSubcategory')?.value || '',
@@ -11345,11 +11339,12 @@
             reader.readAsDataURL(file);
             event.target.value = '';
         }
-        function saveMenuPhoto(id, base64) {
+        async function saveMenuPhoto(id, base64) {
             const restaurant = restaurants.find(r => r.id === id);
             if (!restaurant) return;
             if (!restaurant.menuPhotos) restaurant.menuPhotos = [];
-            restaurant.menuPhotos.push(base64);
+            const url = await uploadPhoto(base64, storagePhotoPath(id, 'menu', Date.now() + '.jpg'));
+            restaurant.menuPhotos.push(url);
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
             saveRestaurantToFirestore(restaurant);
             viewRestaurantWithDishes(id);
@@ -11394,11 +11389,12 @@
             reader.readAsDataURL(file);
             event.target.value = '';
         }
-        function saveReceiptPhoto(id, base64) {
+        async function saveReceiptPhoto(id, base64) {
             const restaurant = restaurants.find(r => r.id === id);
             if (!restaurant) return;
             if (!restaurant.receiptPhotos) restaurant.receiptPhotos = [];
-            restaurant.receiptPhotos.push(base64);
+            const url = await uploadPhoto(base64, storagePhotoPath(id, 'receipts', Date.now() + '.jpg'));
+            restaurant.receiptPhotos.push(url);
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
             saveRestaurantToFirestore(restaurant);
             viewRestaurantWithDishes(id);
