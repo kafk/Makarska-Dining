@@ -8220,9 +8220,17 @@
                 // Cover photo: first visit with a photo, or emoji
                 const coverPhoto = visits.find(v => v.photo)?.photo || dish.photo || null;
                 if (coverPhoto) {
-                    imageHeader.innerHTML = `<img src="${coverPhoto}" style="width:100%;height:100%;object-fit:cover;" alt="Food photo">`;
+                    imageHeader.innerHTML = `<img src="${coverPhoto}" style="width:100%;height:100%;object-fit:cover;" alt="Food photo">
+                        ${dish.foodItemId ? `<div style="position:absolute;bottom:10px;right:10px;display:flex;gap:6px;">
+                            <button onclick="triggerDishPhotoCamera(${dish.restaurantId},${dish.foodItemId})" style="background:rgba(255,255,255,0.9);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);">📷</button>
+                            <button onclick="triggerDishPhotoGallery(${dish.restaurantId},${dish.foodItemId})" style="background:rgba(255,255,255,0.9);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);">🖼️</button>
+                        </div>` : ''}`;
                 } else {
-                    imageHeader.textContent = dish.emoji || '🍽️';
+                    imageHeader.innerHTML = `<span style="font-size:100px;">${dish.emoji || '🍽️'}</span>
+                        ${dish.foodItemId ? `<div style="position:absolute;bottom:10px;right:10px;display:flex;gap:6px;">
+                            <button onclick="triggerDishPhotoCamera(${dish.restaurantId},${dish.foodItemId})" style="background:rgba(255,255,255,0.9);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);">📷</button>
+                            <button onclick="triggerDishPhotoGallery(${dish.restaurantId},${dish.foodItemId})" style="background:rgba(255,255,255,0.9);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);">🖼️</button>
+                        </div>` : ''}`;
                 }
 
                 // Averages
@@ -8434,9 +8442,60 @@
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
             saveRestaurantToFirestore(restaurant);
             if (overlayEl) overlayEl.remove();
-            // Refresh dish detail
             closeDishDetail();
             setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits }), 100);
+        }
+
+        // ---- Dish cover photo change ----
+        let _dishPhotoTarget = null; // { restaurantId, foodItemId }
+
+        function triggerDishPhotoCamera(restaurantId, foodItemId) {
+            _dishPhotoTarget = { restaurantId, foodItemId };
+            if (isNativeApp()) {
+                takeNativePhoto(b64 => saveDishPhoto(b64));
+            } else {
+                let inp = document.getElementById('_dishPhotoCameraInput');
+                if (!inp) {
+                    inp = document.createElement('input');
+                    inp.type = 'file'; inp.id = '_dishPhotoCameraInput';
+                    inp.accept = 'image/*'; inp.setAttribute('capture', 'environment');
+                    inp.style.display = 'none';
+                    inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => compressImage(ev.target.result, 800, 0.8, saveDishPhoto); r.readAsDataURL(f); e.target.value = ''; };
+                    document.body.appendChild(inp);
+                }
+                inp.click();
+            }
+        }
+
+        function triggerDishPhotoGallery(restaurantId, foodItemId) {
+            _dishPhotoTarget = { restaurantId, foodItemId };
+            if (isNativeApp()) {
+                pickNativePhoto(b64 => saveDishPhoto(b64));
+            } else {
+                let inp = document.getElementById('_dishPhotoGalleryInput');
+                if (!inp) {
+                    inp = document.createElement('input');
+                    inp.type = 'file'; inp.id = '_dishPhotoGalleryInput';
+                    inp.accept = 'image/*'; inp.style.display = 'none';
+                    inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => compressImage(ev.target.result, 800, 0.8, saveDishPhoto); r.readAsDataURL(f); e.target.value = ''; };
+                    document.body.appendChild(inp);
+                }
+                inp.click();
+            }
+        }
+
+        function saveDishPhoto(base64) {
+            if (!_dishPhotoTarget) return;
+            const { restaurantId, foodItemId } = _dishPhotoTarget;
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
+            if (!item) return;
+            item.photo = base64;
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            _dishPhotoTarget = null;
+            closeDishDetail();
+            setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null }), 100);
         }
 
         function openAddVisitForm() {
