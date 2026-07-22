@@ -5493,6 +5493,10 @@
                     <input type="text" id="subcategoryName" placeholder="e.g., Croissants">
                 </div>
                 <div class="form-group">
+                    <label>Group / Type <span style="color:#aaa;font-size:11px;">(optional, e.g. Alcoholic, Non-Alcoholic)</span></label>
+                    <input type="text" id="subcategoryGroup" placeholder="e.g., Alcoholic">
+                </div>
+                <div class="form-group">
                     <label>Emoji Icon</label>
                     <div class="emoji-input-wrapper">
                         <input type="text" id="subcategoryEmoji" placeholder="Tap to select">
@@ -9323,10 +9327,47 @@
             const category = document.getElementById('foodCategory').value;
             const subGroup = document.getElementById('foodSubcategoryGroup');
             const subSelect = document.getElementById('foodSubcategory');
-            
-            const subcategories = [...(JSON.parse(localStorage.getItem('customSubcategories')) || [])];
-            
-            const filtered = subcategories.filter(s => s.parentId === category);
+
+            const allSubs = [...(JSON.parse(localStorage.getItem('customSubcategories')) || [])];
+            const filtered = allSubs.filter(s => s.parentId === category || s.categoryId === category);
+
+            if (filtered.length === 0) {
+                subGroup.style.display = 'none';
+                return;
+            }
+
+            subGroup.style.display = 'block';
+            subSelect.innerHTML = '<option value="">Choose type...</option>';
+
+            // Group by group field
+            const groups = {};
+            filtered.forEach(s => {
+                const g = s.group || '';
+                if (!groups[g]) groups[g] = [];
+                groups[g].push(s);
+            });
+
+            Object.entries(groups).forEach(([groupName, subs]) => {
+                if (groupName) {
+                    const optGroup = document.createElement('optgroup');
+                    optGroup.label = groupName;
+                    subs.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = (s.emoji || '') + ' ' + (s.name || s.label);
+                        optGroup.appendChild(opt);
+                    });
+                    subSelect.appendChild(optGroup);
+                } else {
+                    subs.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = (s.emoji || '') + ' ' + (s.name || s.label);
+                        subSelect.appendChild(opt);
+                    });
+                }
+            });
+        }
             
             if (filtered.length > 0) {
                 subSelect.innerHTML = '<option value="">Choose subcategory...</option>';
@@ -9851,25 +9892,37 @@
 
             // Merge with user-added custom subcategories that belong to this category
             const customSubs = JSON.parse(localStorage.getItem('customSubcategories')) || [];
-            const custom = customSubs
-                .filter(s => s.parentId === category || s.categoryId === category)
-                .map(s => ({ id: s.id, label: (s.emoji || '') + ' ' + s.name }));
+            const custom = customSubs.filter(s => s.parentId === category || s.categoryId === category);
 
-            // Combine, deduplicate by id
-            const seen = new Set();
-            const combined = [...defaults, ...custom].filter(s => {
-                if (seen.has(s.id)) return false;
-                seen.add(s.id);
-                return true;
+            // Build grouped HTML
+            // All button first
+            let html = `<button class="filter-subcategory-btn active" data-subcategory="all" onclick="selectFilterSubcategory('all')">🍽️ All</button>`;
+
+            // Group custom subs by group field
+            const groups = {};
+            custom.forEach(s => {
+                const g = s.group || '';
+                if (!groups[g]) groups[g] = [];
+                groups[g].push(s);
             });
 
-            container.innerHTML = combined.map(sub => `
-                <button class="filter-subcategory-btn ${sub.id === 'all' ? 'active' : ''}"
-                        data-subcategory="${sub.id}"
-                        onclick="selectFilterSubcategory('${sub.id}')">
-                    ${sub.label}
-                </button>
-            `).join('');
+            // Default (non-custom) buttons without group headers
+            defaults.filter(s => s.id !== 'all').forEach(sub => {
+                html += `<button class="filter-subcategory-btn" data-subcategory="${sub.id}" onclick="selectFilterSubcategory('${sub.id}')">${sub.label}</button>`;
+            });
+
+            // Custom grouped
+            Object.entries(groups).forEach(([groupName, subs]) => {
+                if (groupName) {
+                    html += `<span style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;padding:4px 6px;align-self:center;">${groupName}</span>`;
+                }
+                subs.forEach(s => {
+                    const label = (s.emoji || '') + ' ' + (s.name || s.label);
+                    html += `<button class="filter-subcategory-btn" data-subcategory="${s.id}" onclick="selectFilterSubcategory('${s.id}')">${label}</button>`;
+                });
+            });
+
+            container.innerHTML = html;
         }
 
         function selectFilterSubcategory(subcategory) {
@@ -11461,11 +11514,16 @@
             }
             
             const id = name.toLowerCase().replace(/\s+/g, '-');
+            const group = document.getElementById('subcategoryGroup').value.trim();
             
             customSubcategories.push({ 
                 id, 
+                name,
+                emoji,
                 label: `${emoji} ${name}`,
-                categoryId 
+                categoryId,
+                parentId: categoryId,
+                group: group || ''
             });
             localStorage.setItem('customSubcategories', JSON.stringify(customSubcategories));
             
