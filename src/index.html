@@ -8392,9 +8392,18 @@
                 `<option value="${c.id}" ${(item.category || '') === c.id ? 'selected' : ''}>${c.emoji} ${c.name}</option>`
             ).join('');
 
-            // Build subcategory options for current category
-            const currentCatSubs = (JSON.parse(localStorage.getItem('customSubcategories')) || [])
-                .filter(s => s.parentId === item.category || s.categoryId === item.category);
+            // Build subcategory options for current category — include defaults + custom
+            function getSubsForCat(catId) {
+                const defaults = (filterSubcategories[catId] || []).filter(s => s.id !== 'all');
+                const custom = (JSON.parse(localStorage.getItem('customSubcategories')) || [])
+                    .filter(s => s.parentId === catId || s.categoryId === catId);
+                const customIds = new Set(custom.map(s => s.id));
+                return [
+                    ...defaults.filter(s => !customIds.has(s.id)).map(s => ({ id: s.id, label: s.label })),
+                    ...custom.map(s => ({ id: s.id, label: (s.emoji||'') + ' ' + (s.name||s.label) }))
+                ];
+            }
+            const currentCatSubs = getSubsForCat(item.category || '');
 
             const subOptions = currentCatSubs.length
                 ? `<option value="">No subcategory</option>` + currentCatSubs.map(s =>
@@ -8437,10 +8446,16 @@
         function refreshEditItemSubs(restaurantId, foodItemId) {
             const catId = document.getElementById('ei_category').value;
             const subSel = document.getElementById('ei_subcategory');
-            const subs = (JSON.parse(localStorage.getItem('customSubcategories')) || [])
+            const defaults = (filterSubcategories[catId] || []).filter(s => s.id !== 'all');
+            const custom = (JSON.parse(localStorage.getItem('customSubcategories')) || [])
                 .filter(s => s.parentId === catId || s.categoryId === catId);
+            const customIds = new Set(custom.map(s => s.id));
+            const allSubs = [
+                ...defaults.filter(s => !customIds.has(s.id)).map(s => ({ id: s.id, label: s.label })),
+                ...custom.map(s => ({ id: s.id, label: (s.emoji||'') + ' ' + (s.name||s.label) }))
+            ];
             subSel.innerHTML = `<option value="">No subcategory</option>` +
-                subs.map(s => `<option value="${s.id}">${(s.emoji||'')} ${s.name||s.label}</option>`).join('');
+                allSubs.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
         }
 
         function saveEditFoodItem(restaurantId, foodItemId, overlayEl) {
