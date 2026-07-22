@@ -9379,18 +9379,6 @@
                 }
             });
         }
-            
-            if (filtered.length > 0) {
-                subSelect.innerHTML = '<option value="">Choose subcategory...</option>';
-                filtered.forEach(sub => {
-                    subSelect.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
-                });
-                subGroup.style.display = 'block';
-            } else {
-                subGroup.style.display = 'none';
-            }
-        }
-
         function closeAddFoodModal() {
             document.getElementById('addFoodModal').style.display = 'none';
             const wt = document.getElementById('dishWaitTime');
