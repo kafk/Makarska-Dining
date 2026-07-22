@@ -7393,45 +7393,94 @@
             const groupNameEl = document.getElementById('currentGroupName');
             const groupMetaEl = document.getElementById('currentGroupMeta');
             
-            // Find current group
             const currentGroup = userGroups.find(g => g.id === currentGroupId) || userGroups[0];
-            
             if (!currentGroup) {
                 container.innerHTML = '<div class="settings-empty">No group selected</div>';
                 return;
             }
 
-            // Update header
             groupNameEl.textContent = currentGroup.name;
-            groupMetaEl.textContent = (currentGroup.members || 1) + ' member' + ((currentGroup.members || 1) > 1 ? 's' : '');
 
-            // Members for Darko & Jessica group
-            let members;
-            if (currentGroup.id === 'group_darko_jessica') {
-                members = [
-                    { name: 'Darko (You)', role: 'Admin • Created group', ratings: Math.floor(currentGroup.ratings / 2), color: 'linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%)', initial: 'D' },
-                    { name: 'Jessica', role: 'Member', ratings: Math.ceil(currentGroup.ratings / 2), color: 'linear-gradient(135deg, #fd79a8 0%, #e84393 100%)', initial: 'J' }
-                ];
+            const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+            const isOwner = currentGroup.ownerUid === currentUid;
+
+            // Load members from Firestore if group has an inviteCode
+            if (currentGroup.inviteCode) {
+                db.collection('groups').doc(currentGroup.inviteCode).get().then(doc => {
+                    const fsMembers = doc.exists ? (doc.data().memberNames || doc.data().members || []) : [];
+                    const memberCount = Array.isArray(fsMembers) ? fsMembers.length : (currentGroup.members || 1);
+                    groupMetaEl.textContent = memberCount + ' member' + (memberCount !== 1 ? 's' : '');
+
+                    let html = '';
+                    // Always show creator first
+                    const ownerName = currentGroup.ownerName || 'Creator';
+                    const isMe = currentGroup.ownerUid === currentUid;
+                    html += `<div class="member-card">
+                        <div class="member-avatar" style="background:linear-gradient(135deg,#ff6b6b,#ff8787);">${ownerName.charAt(0).toUpperCase()}</div>
+                        <div class="member-info">
+                            <div class="member-name">${ownerName}${isMe ? ' (You)' : ''}</div>
+                            <div class="member-role">Admin · Created group</div>
+                        </div>
+                    </div>`;
+
+                    // Show other members
+                    if (doc.exists && Array.isArray(doc.data().memberNames)) {
+                        doc.data().memberNames.forEach(m => {
+                            if (m.uid === currentGroup.ownerUid) return; // already shown
+                            const isSelf = m.uid === currentUid;
+                            html += `<div class="member-card">
+                                <div class="member-avatar" style="background:linear-gradient(135deg,#74b9ff,#0984e3);">${(m.name || '?').charAt(0).toUpperCase()}</div>
+                                <div class="member-info">
+                                    <div class="member-name">${m.name || 'Member'}${isSelf ? ' (You)' : ''}</div>
+                                    <div class="member-role">Member</div>
+                                </div>
+                                ${isOwner && !isSelf ? `<button onclick="removeMemberFromGroup('${currentGroup.inviteCode}', '${m.uid}', '${m.name}')" style="background:#ffe3e3;color:#e74c3c;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;">Remove</button>` : ''}
+                            </div>`;
+                        });
+                    } else if (memberCount > 1) {
+                        // Fallback: just show count
+                        html += `<div class="member-card">
+                            <div class="member-avatar" style="background:linear-gradient(135deg,#74b9ff,#0984e3);">?</div>
+                            <div class="member-info"><div class="member-name">Other members</div><div class="member-role">${memberCount - 1} joined</div></div>
+                        </div>`;
+                    }
+
+                    container.innerHTML = html;
+                }).catch(() => {
+                    groupMetaEl.textContent = (currentGroup.members || 1) + ' members';
+                    container.innerHTML = `<div class="member-card">
+                        <div class="member-avatar" style="background:linear-gradient(135deg,#ff6b6b,#ff8787);">D</div>
+                        <div class="member-info"><div class="member-name">You</div><div class="member-role">Admin</div></div>
+                    </div>`;
+                });
             } else {
-                // Default members for other groups
-                members = [
-                    { name: 'Darko (You)', role: 'Admin • Created group', ratings: 0, color: 'linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%)', initial: 'D' }
-                ];
+                groupMetaEl.textContent = '1 member';
+                container.innerHTML = `<div class="member-card">
+                    <div class="member-avatar" style="background:linear-gradient(135deg,#ff6b6b,#ff8787);">D</div>
+                    <div class="member-info"><div class="member-name">You</div><div class="member-role">Admin · Created group</div></div>
+                </div>`;
             }
+        }
 
-            container.innerHTML = members.map(member => `
-                <div class="member-card">
-                    <div class="member-avatar" style="background: ${member.color};">${member.initial}</div>
-                    <div class="member-info">
-                        <div class="member-name">${member.name}</div>
-                        <div class="member-role">${member.role}</div>
-                    </div>
-                    <div class="member-stats">
-                        <div class="member-stat-value">${member.ratings}</div>
-                        <div class="member-stat-label">ratings</div>
-                    </div>
-                </div>
-            `).join('');
+        async function removeMemberFromGroup(inviteCode, uid, name) {
+            if (!confirm('Remove ' + name + ' from the group?')) return;
+            try {
+                // Remove from memberNames array
+                const doc = await db.collection('groups').doc(inviteCode).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    const updatedNames = (data.memberNames || []).filter(m => m.uid !== uid);
+                    const updatedMembers = (data.members || []).filter(m => m !== uid);
+                    await db.collection('groups').doc(inviteCode).update({
+                        memberNames: updatedNames,
+                        members: updatedMembers
+                    });
+                }
+                alert(name + ' has been removed from the group.');
+                populateGroupMembersList();
+            } catch(e) {
+                alert('Could not remove member: ' + e.message);
+            }
         }
 
         function displayCurrentGroupInviteCode() {
@@ -11802,9 +11851,11 @@
             // Add current user as member in Firestore
             try {
                 const uid = auth.currentUser ? auth.currentUser.uid : null;
+                const displayName = auth.currentUser ? (auth.currentUser.displayName || 'Member') : 'Member';
                 if (uid) {
                     await db.collection('groups').doc(inviteCode).update({
-                        members: firebase.firestore.FieldValue.arrayUnion(uid)
+                        members: firebase.firestore.FieldValue.arrayUnion(uid),
+                        memberNames: firebase.firestore.FieldValue.arrayUnion({ uid, name: displayName })
                     });
                 }
             } catch(e) { console.warn('Could not update members:', e.message); }
