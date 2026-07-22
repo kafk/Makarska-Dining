@@ -4827,6 +4827,9 @@
                 <button class="login-btn login-btn-primary" onclick="handleEmailLogin()">
                     Sign In
                 </button>
+                <div style="text-align:center;margin-top:8px;">
+                    <button onclick="handleForgotPassword()" style="background:none;border:none;color:#636e72;font-size:12px;cursor:pointer;text-decoration:underline;">Forgot password?</button>
+                </div>
                 <div class="login-divider">or</div>
                 <button class="login-btn login-btn-secondary" onclick="showRegisterForm()">
                     Create Account
@@ -5970,6 +5973,25 @@
         // Convert username to email format for Firebase Auth
         function usernameToEmail(username) {
             return username.toLowerCase().trim() + '@makarska-dining.app';
+        }
+
+        async function handleForgotPassword() {
+            const username = document.getElementById('loginUsername').value.trim();
+            if (!username) {
+                alert('Enter your username first, then tap "Forgot password?"');
+                return;
+            }
+            const email = usernameToEmail(username);
+            try {
+                await auth.sendPasswordResetEmail(email);
+                alert('✅ Password reset email sent to the address linked to "' + username + '".\n\nCheck your inbox (and spam folder).');
+            } catch (error) {
+                if (error.code === 'auth/user-not-found') {
+                    alert('No account found for username "' + username + '".');
+                } else {
+                    alert('Could not send reset email: ' + error.message);
+                }
+            }
         }
 
         // Show login form
