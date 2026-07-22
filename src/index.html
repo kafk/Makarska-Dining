@@ -9845,10 +9845,26 @@
 
         function populateFilterSubcategories(category) {
             const container = document.getElementById('filterSubcategories');
-            const subcategories = filterSubcategories[category] || [];
 
-            container.innerHTML = subcategories.map(sub => `
-                <button class="filter-subcategory-btn ${sub.id === 'all' ? 'active' : ''}" 
+            // Start with hardcoded defaults for this category
+            const defaults = filterSubcategories[category] || [{ id: 'all', label: '🍽️ All' }];
+
+            // Merge with user-added custom subcategories that belong to this category
+            const customSubs = JSON.parse(localStorage.getItem('customSubcategories')) || [];
+            const custom = customSubs
+                .filter(s => s.parentId === category || s.categoryId === category)
+                .map(s => ({ id: s.id, label: (s.emoji || '') + ' ' + s.name }));
+
+            // Combine, deduplicate by id
+            const seen = new Set();
+            const combined = [...defaults, ...custom].filter(s => {
+                if (seen.has(s.id)) return false;
+                seen.add(s.id);
+                return true;
+            });
+
+            container.innerHTML = combined.map(sub => `
+                <button class="filter-subcategory-btn ${sub.id === 'all' ? 'active' : ''}"
                         data-subcategory="${sub.id}"
                         onclick="selectFilterSubcategory('${sub.id}')">
                     ${sub.label}
