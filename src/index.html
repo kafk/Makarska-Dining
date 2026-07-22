@@ -7728,7 +7728,8 @@
                                 category: dish.subcategory || dish.category || '',
                                 mainCategory: dish.category || '',
                                 emoji: getCategoryEmoji(dish.category || 'food'),
-                                visits: dish.visits || null
+                                visits: dish.visits || null,
+                                photo: dish.photo || null
                             };
                             return `
                             <div class="dish-card" onclick="viewDishDetail(_dishDetailLookup['${dishKey}'])" style="cursor:pointer;">
@@ -8106,6 +8107,7 @@
                             emoji: getCategoryEmoji(item.category),
                             date: item.visitDate,
                             visits: item.visits || null,
+                            photo: item.photo || null,
                             isUserAdded: true
                         });
                     });
@@ -8242,8 +8244,8 @@
                         photo: dish.photo || null
                     }];
 
-                // Cover photo: first visit with a photo, or emoji
-                const coverPhoto = visits.find(v => v.photo)?.photo || dish.photo || null;
+                // Cover photo: item.photo (direct), or first visit with a photo
+                const coverPhoto = dish.photo || visits.find(v => v.photo)?.photo || null;
                 if (coverPhoto) {
                     imageHeader.innerHTML = `<img src="${coverPhoto}" style="width:100%;height:100%;object-fit:cover;" alt="Food photo">
                         ${dish.foodItemId ? `<div style="position:absolute;bottom:10px;right:10px;display:flex;gap:6px;">
