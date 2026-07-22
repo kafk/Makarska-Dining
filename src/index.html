@@ -7431,7 +7431,8 @@
         function shareViaWhatsApp() {
             const currentGroup = userGroups.find(g => g.id === currentGroupId) || userGroups[0];
             if (currentGroup) {
-                const text = `Join my group "${currentGroup.name}" on Makarska Dining! Use code: ${currentGroup.inviteCode}`;
+                const link = `https://kafk.github.io/Makarska-Dining/#join=${currentGroup.inviteCode}`;
+                const text = `Join my group "${currentGroup.name}" on Makarska Dining!\n\nTap this link: ${link}\n\nOr use code: ${currentGroup.inviteCode}`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
             }
         }
@@ -7448,10 +7449,12 @@
         function shareViaLink() {
             const currentGroup = userGroups.find(g => g.id === currentGroupId) || userGroups[0];
             if (currentGroup) {
-                const link = `https://makarska-dining.app/join/${currentGroup.inviteCode}`;
-                navigator.clipboard.writeText(link).then(() => {
-                    alert('Link copied: ' + link);
-                });
+                const link = `https://kafk.github.io/Makarska-Dining/#join=${currentGroup.inviteCode}`;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(link).then(() => alert('Link copied: ' + link));
+                } else {
+                    alert('Share this link: ' + link);
+                }
             }
         }
 
@@ -11540,6 +11543,18 @@
                 populateSidebar();
             }).catch(() => {});
 
+            // Check for invite link in URL hash e.g. #join=ABC123
+            const joinMatch = window.location.hash.match(/#join=([A-Z0-9]{6})/i);
+            if (joinMatch) {
+                window.location.hash = '';
+                setTimeout(() => {
+                    showJoinGroup();
+                    const input = document.getElementById('inviteCodeInput');
+                    if (input) input.value = joinMatch[1].toUpperCase();
+                }, 400);
+                return;
+            }
+
             if (userGroups.length > 0) {
                 currentGroupId = userGroups[0].id;
                 showGroupsList();
@@ -11681,67 +11696,112 @@
         }
 
         // Create group function
-        function createGroup() {
+        async function createGroup() {
             const groupName = document.getElementById('groupNameInput').value.trim();
             if (!groupName) {
                 alert('Please enter a group name');
                 return;
             }
 
+            const inviteCode = generateInviteCode();
             const newGroup = {
                 id: generateGroupId(),
                 name: groupName,
                 description: document.getElementById('groupDescInput').value.trim(),
                 photo: selectedGroupPhoto,
-                inviteCode: generateInviteCode(),
+                inviteCode: inviteCode,
                 members: 1,
                 places: 0,
                 ratings: 0,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                ownerUid: auth.currentUser ? auth.currentUser.uid : null,
+                ownerName: auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email) : 'Unknown'
             };
 
             userGroups.push(newGroup);
             saveGroups();
-            
-            // Enter the new group
+
+            // Save group to Firestore so others can find it by invite code
+            try {
+                await db.collection('groups').doc(inviteCode).set({
+                    id: newGroup.id,
+                    name: newGroup.name,
+                    description: newGroup.description,
+                    inviteCode: inviteCode,
+                    ownerUid: newGroup.ownerUid,
+                    ownerName: newGroup.ownerName,
+                    createdAt: newGroup.createdAt,
+                    members: [newGroup.ownerUid]
+                });
+                console.log('✅ Group saved to Firestore:', inviteCode);
+            } catch(e) {
+                console.warn('Could not save group to Firestore:', e.message);
+            }
+
             currentGroupId = newGroup.id;
             showGroupsList();
         }
 
         // Join group function
-        function joinGroup() {
+        async function joinGroup() {
             const inviteCode = document.getElementById('inviteCodeInput').value.trim().toUpperCase();
             if (!inviteCode || inviteCode.length < 6) {
                 alert('Please enter a valid 6-digit invite code');
                 return;
             }
 
-            // Check if code matches any existing group (for demo, create a placeholder)
-            // In real app, this would query Firebase
             const existingGroup = userGroups.find(g => g.inviteCode === inviteCode);
-            
             if (existingGroup) {
                 alert('You are already a member of this group!');
                 showGroupsList();
                 return;
             }
 
-            // For demo, create a joined group with this code
+            // Look up group in Firestore
+            let groupData = null;
+            try {
+                const doc = await db.collection('groups').doc(inviteCode).get();
+                if (doc.exists) {
+                    groupData = doc.data();
+                }
+            } catch(e) {
+                console.warn('Firestore lookup failed:', e.message);
+            }
+
+            if (!groupData) {
+                alert('Group not found. Please check the invite code and try again.');
+                return;
+            }
+
+            // Add current user as member in Firestore
+            try {
+                const uid = auth.currentUser ? auth.currentUser.uid : null;
+                if (uid) {
+                    await db.collection('groups').doc(inviteCode).update({
+                        members: firebase.firestore.FieldValue.arrayUnion(uid)
+                    });
+                }
+            } catch(e) { console.warn('Could not update members:', e.message); }
+
             const joinedGroup = {
-                id: generateGroupId(),
-                name: 'Joined Group',
-                description: 'Joined with code ' + inviteCode,
+                id: groupData.id || generateGroupId(),
+                name: groupData.name,
+                description: groupData.description || '',
                 photo: null,
                 inviteCode: inviteCode,
-                members: 2,
+                members: (groupData.members || []).length + 1,
                 places: 0,
                 ratings: 0,
-                createdAt: new Date().toISOString(),
-                joined: true
+                createdAt: groupData.createdAt || new Date().toISOString(),
+                joined: true,
+                ownerUid: groupData.ownerUid,
+                ownerName: groupData.ownerName
             };
 
             userGroups.push(joinedGroup);
             saveGroups();
+            currentGroupId = joinedGroup.id;
+            alert(`✅ Joined "${joinedGroup.name}" — created by ${joinedGroup.ownerName || 'your friend'}!`);
             showGroupsList();
         }
 
