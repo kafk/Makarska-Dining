@@ -3772,6 +3772,17 @@
             border-radius: 24px;
         }
 
+        /* Universal bottom clearance so content never hides behind the bottom nav */
+        .restaurants-list-view,
+        .settings-content,
+        .groups-list-content,
+        .sidebar-content,
+        .restaurant-detail-body,
+        .dish-detail-content,
+        .auth-screen {
+            padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
+        }
+
         /* Position scale above bottom nav */
         .leaflet-control-scale {
             margin-bottom: 130px !important;
