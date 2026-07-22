@@ -5338,6 +5338,14 @@
                 </div>
             </div>
             
+            <!-- Migrate photos -->
+            <div style="background:linear-gradient(135deg,#0984e3,#74b9ff);color:white;padding:16px;border-radius:12px;margin-top:8px;">
+                <p style="font-size:14px;font-weight:600;margin-bottom:8px;">☁️ Migrate photos to cloud</p>
+                <p style="font-size:13px;line-height:1.5;opacity:0.95;margin-bottom:12px;">If you added photos on this device before the cloud update, tap below to upload them to Firebase Storage so all devices can see them.</p>
+                <button onclick="migrateLocalPhotos()" style="background:white;color:#0984e3;border:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;width:100%;">Upload local photos to cloud</button>
+                <div id="migrateStatus" style="margin-top:8px;font-size:12px;opacity:0.9;"></div>
+            </div>
+
             <!-- Pin Location Help -->
             <div style="background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; padding: 16px; border-radius: 12px; margin-top: 8px;">
                 <p style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">📍 Justera pin-positioner</p>
@@ -12299,6 +12307,95 @@
 
         // Check if user is already logged in (for demo, always show login)
         // In real app, check Firebase Auth state here
+
+        async function migrateLocalPhotos() {
+            const statusEl = document.getElementById('migrateStatus');
+            const localData = JSON.parse(localStorage.getItem('restaurants')) || [];
+            let uploaded = 0, skipped = 0, failed = 0;
+
+            function setStatus(msg) { if (statusEl) statusEl.textContent = msg; }
+            setStatus('Starting migration...');
+
+            for (const r of localData) {
+                let changed = false;
+
+                // Cover photo
+                if (r.coverPhoto && r.coverPhoto.startsWith('data:')) {
+                    try {
+                        setStatus(`Uploading cover photo for ${r.name}...`);
+                        r.coverPhoto = await uploadPhoto(r.coverPhoto, storagePhotoPath(r.id, 'cover', 'cover.jpg'));
+                        changed = true; uploaded++;
+                    } catch(e) { failed++; }
+                }
+
+                // Food gallery photos
+                if (r.photos) {
+                    for (let i = 0; i < r.photos.length; i++) {
+                        const p = r.photos[i];
+                        const url = typeof p === 'object' ? p.url : p;
+                        if (url && url.startsWith('data:')) {
+                            try {
+                                setStatus(`Uploading food photo ${i+1} for ${r.name}...`);
+                                const newUrl = await uploadPhoto(url, storagePhotoPath(r.id, 'photos', `${Date.now()}_${i}.jpg`));
+                                if (typeof p === 'object') r.photos[i].url = newUrl;
+                                else r.photos[i] = newUrl;
+                                changed = true; uploaded++;
+                            } catch(e) { failed++; }
+                        } else skipped++;
+                    }
+                }
+
+                // Menu photos
+                if (r.menuPhotos) {
+                    for (let i = 0; i < r.menuPhotos.length; i++) {
+                        if (r.menuPhotos[i] && r.menuPhotos[i].startsWith('data:')) {
+                            try {
+                                setStatus(`Uploading menu photo for ${r.name}...`);
+                                r.menuPhotos[i] = await uploadPhoto(r.menuPhotos[i], storagePhotoPath(r.id, 'menu', `${Date.now()}_${i}.jpg`));
+                                changed = true; uploaded++;
+                            } catch(e) { failed++; }
+                        }
+                    }
+                }
+
+                // Receipt photos
+                if (r.receiptPhotos) {
+                    for (let i = 0; i < r.receiptPhotos.length; i++) {
+                        if (r.receiptPhotos[i] && r.receiptPhotos[i].startsWith('data:')) {
+                            try {
+                                setStatus(`Uploading receipt for ${r.name}...`);
+                                r.receiptPhotos[i] = await uploadPhoto(r.receiptPhotos[i], storagePhotoPath(r.id, 'receipts', `${Date.now()}_${i}.jpg`));
+                                changed = true; uploaded++;
+                            } catch(e) { failed++; }
+                        }
+                    }
+                }
+
+                // Food item photos
+                if (r.foodItems) {
+                    for (const item of r.foodItems) {
+                        if (item.photo && item.photo.startsWith('data:')) {
+                            try {
+                                setStatus(`Uploading photo for dish "${item.name}"...`);
+                                item.photo = await uploadPhoto(item.photo, storagePhotoPath(r.id, `food/${item.id}`, 'cover.jpg'));
+                                changed = true; uploaded++;
+                            } catch(e) { failed++; }
+                        }
+                    }
+                }
+
+                if (changed) {
+                    // Update both localStorage and Firestore with new URLs
+                    const idx = restaurants.findIndex(x => x.id === r.id);
+                    if (idx !== -1) restaurants[idx] = r;
+                    localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                    await saveRestaurantToFirestore(r);
+                }
+            }
+
+            setStatus(`✅ Done! Uploaded: ${uploaded} • Already cloud: ${skipped} • Failed: ${failed}`);
+            if (uploaded > 0) { loadMarkers(); populateSidebar(); }
+        }
 
         function resetToDemo() {
             if (confirm('Vill du ladda demo-data med alla restauranger och maträtter?')) {
