@@ -7840,6 +7840,7 @@
                         <span class="info-label">Last Visit</span>
                         <span class="info-value">${new Date(restaurant.visitDate).toLocaleDateString()}</span>
                     </div>
+                    <button onclick="openEditRestaurantModal(${id})" style="width:100%;margin-top:12px;padding:10px;background:#f1f3f5;color:#2d3436;border:none;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;">✏️ Edit Restaurant Info</button>
                 </div>
                 ${dishesHtml}
                 ${photosHtml}
@@ -8229,11 +8230,18 @@
                 const svcAvg = visits.filter(v => v.serviceRating > 0).reduce((s, v, _, a) => s + v.serviceRating / a.length, 0);
 
                 // Visit log HTML
-                const visitsHtml = visits.slice().reverse().map((v, i) => `
+                // visits reversed for display, but we need the real index for editing
+                const reversedVisits = visits.slice().reverse();
+                const visitsHtml = reversedVisits.map((v, displayIdx) => {
+                    const realIdx = visits.length - 1 - displayIdx;
+                    return `
                     <div style="background:#f8f9fa;border-radius:12px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #ff6b6b;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                             <span style="font-weight:700;font-size:13px;color:#2d3436;">📅 ${v.date ? new Date(v.date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'Unknown date'}</span>
-                            ${v.cost ? `<span style="background:#e8f5e9;color:#27ae60;font-weight:700;font-size:12px;padding:2px 8px;border-radius:20px;">💰 ${v.cost}</span>` : ''}
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                ${v.cost ? `<span style="background:#e8f5e9;color:#27ae60;font-weight:700;font-size:12px;padding:2px 8px;border-radius:20px;">💰 ${v.cost}</span>` : ''}
+                                ${dish.restaurantId && dish.foodItemId ? `<button onclick="editVisit(${dish.restaurantId},${dish.foodItemId},${realIdx})" style="background:none;border:none;font-size:14px;cursor:pointer;padding:2px 4px;" title="Edit visit">✏️</button>` : ''}
+                            </div>
                         </div>
                         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;font-size:12px;">
                             ${v.tasteRating ? `<span>😋 Taste: ${starsHtml(v.tasteRating, 5)}</span>` : ''}
@@ -8243,10 +8251,10 @@
                         ${v.comment ? `<div style="font-size:12px;color:#636e72;font-style:italic;">&ldquo;${v.comment}&rdquo;</div>` : ''}
                         ${v.photo ? `<img src="${v.photo}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;">` : ''}
                     </div>
-                `).join('');
+                `}).join('');
 
                 body.innerHTML = `
-                    <h2 class="dish-detail-title">${dish.name}</h2>
+                    <h2 class="dish-detail-title">${dish.name} ${dish.foodItemId ? `<button onclick="editFoodItemName(${dish.restaurantId},${dish.foodItemId})" style="background:none;border:none;font-size:16px;cursor:pointer;vertical-align:middle;" title="Edit dish name">✏️</button>` : ''}</h2>
                     <div class="dish-detail-restaurant">📍 ${dish.restaurant || ''}</div>
 
                     <div class="dish-info-grid" style="margin:14px 0;">
@@ -8339,6 +8347,96 @@
 
         function closeDishDetail() {
             document.getElementById('dishDetailModal').style.display = 'none';
+        }
+
+        function editFoodItemName(restaurantId, foodItemId) {
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
+            if (!item) return;
+            const newName = prompt('Dish name:', item.name);
+            if (newName && newName.trim() && newName.trim() !== item.name) {
+                item.name = newName.trim();
+                localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                saveRestaurantToFirestore(restaurant);
+                // Refresh dish detail
+                closeDishDetail();
+                setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null }), 100);
+            }
+        }
+
+        function editVisit(restaurantId, foodItemId, visitIndex) {
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
+            if (!item || !item.visits || !item.visits[visitIndex]) return;
+            const v = item.visits[visitIndex];
+
+            // Build edit overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:70000;display:flex;align-items:flex-end;justify-content:center;';
+            overlay.innerHTML = `
+                <div style="background:white;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:540px;max-height:85vh;overflow-y:auto;">
+                    <div style="font-weight:700;font-size:16px;margin-bottom:16px;">✏️ Edit Visit</div>
+                    <div style="margin-bottom:8px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Date</label>
+                        <input type="date" id="ev_date" value="${v.date || ''}" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;"></div>
+                    <div style="margin-bottom:8px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">😋 Taste</label>
+                        <div style="font-size:24px;cursor:pointer;">
+                            ${[1,2,3,4,5].map(n => `<span onclick="evStar('taste',${n})" id="ev_ts${n}">${n <= (v.tasteRating||0) ? '★' : '☆'}</span>`).join('')}
+                        </div>
+                        <input type="hidden" id="ev_taste" value="${v.tasteRating||0}"></div>
+                    <div style="margin-bottom:8px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">🤝 Service</label>
+                        <div style="font-size:24px;cursor:pointer;">
+                            ${[1,2,3,4,5].map(n => `<span onclick="evStar('service',${n})" id="ev_ss${n}">${n <= (v.serviceRating||0) ? '★' : '☆'}</span>`).join('')}
+                        </div>
+                        <input type="hidden" id="ev_service" value="${v.serviceRating||0}"></div>
+                    <div style="margin-bottom:8px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">🕐 Wait time</label>
+                        <select id="ev_wait" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;">
+                            <option value="" ${!v.waitTime?'selected':''}>Not rated</option>
+                            <option value="Fast" ${v.waitTime==='Fast'?'selected':''}>⚡ Fast</option>
+                            <option value="OK" ${v.waitTime==='OK'?'selected':''}>👌 OK</option>
+                            <option value="Slow" ${v.waitTime==='Slow'?'selected':''}>🐢 Slow</option>
+                        </select></div>
+                    <div style="margin-bottom:8px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">💰 Cost</label>
+                        <input type="text" id="ev_cost" value="${v.cost||''}" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;box-sizing:border-box;"></div>
+                    <div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">📝 Comment</label>
+                        <textarea id="ev_comment" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:13px;resize:vertical;box-sizing:border-box;">${v.comment||''}</textarea></div>
+                    <div style="display:flex;gap:8px;padding-bottom:env(safe-area-inset-bottom);">
+                        <button onclick="saveEditVisit(${restaurantId},${foodItemId},${visitIndex},this.closest('div[style*=inset]'))" style="flex:1;padding:12px;background:#ff6b6b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Save</button>
+                        <button onclick="this.closest('div[style*=inset]').remove()" style="padding:12px 20px;background:#eee;color:#555;border:none;border-radius:10px;cursor:pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        }
+
+        function evStar(type, val) {
+            const pre = type === 'taste' ? 'ev_ts' : 'ev_ss';
+            const hid = type === 'taste' ? 'ev_taste' : 'ev_service';
+            document.getElementById(hid).value = val;
+            for (let i = 1; i <= 5; i++) {
+                const el = document.getElementById(pre + i);
+                if (el) el.textContent = i <= val ? '★' : '☆';
+            }
+        }
+
+        function saveEditVisit(restaurantId, foodItemId, visitIndex, overlayEl) {
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
+            if (!item || !item.visits || !item.visits[visitIndex]) return;
+            const v = item.visits[visitIndex];
+            v.date = document.getElementById('ev_date').value || v.date;
+            v.year = v.date ? new Date(v.date).getFullYear() : v.year;
+            v.tasteRating = parseInt(document.getElementById('ev_taste').value) || 0;
+            v.serviceRating = parseInt(document.getElementById('ev_service').value) || 0;
+            v.waitTime = document.getElementById('ev_wait').value;
+            v.cost = document.getElementById('ev_cost').value;
+            v.comment = document.getElementById('ev_comment').value;
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            if (overlayEl) overlayEl.remove();
+            // Refresh dish detail
+            closeDishDetail();
+            setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits }), 100);
         }
 
         function openAddVisitForm() {
@@ -8945,24 +9043,66 @@
             document.getElementById('addChoiceModal').style.display = 'none';
         }
 
+        let _editingRestaurantId = null;
+
         function openAddRestaurantModal() {
+            _editingRestaurantId = null;
             closeAddChoiceModal();
             document.getElementById('addRestaurantModal').style.display = 'block';
+            document.getElementById('addRestaurantModal').querySelector('h2').textContent = 'Add Location';
             document.getElementById('restaurantForm').reset();
             selectedLocation = null;
 
-            // Populate place category dropdown from user categories
             const catSelect = document.getElementById('restaurantCategory');
             catSelect.innerHTML = '<option value="">Choose category...</option>';
             getAllCategories().forEach(cat => {
                 catSelect.innerHTML += `<option value="${cat.id}">${cat.emoji} ${cat.name}</option>`;
             });
 
-            // Reset photo section
             resetRestaurantPhotoForm();
-
-            // Reset location picker
             resetLocationPicker();
+        }
+
+        function openEditRestaurantModal(id) {
+            const r = restaurants.find(x => x.id === id);
+            if (!r) return;
+            _editingRestaurantId = id;
+
+            // Close restaurant detail, open form
+            document.getElementById('viewModal').classList.remove('open');
+            document.getElementById('addRestaurantModal').style.display = 'block';
+            document.getElementById('addRestaurantModal').querySelector('h2').textContent = 'Edit Location';
+            document.getElementById('restaurantForm').reset();
+
+            // Populate & pre-select category
+            const catSelect = document.getElementById('restaurantCategory');
+            catSelect.innerHTML = '<option value="">Choose category...</option>';
+            getAllCategories().forEach(cat => {
+                catSelect.innerHTML += `<option value="${cat.id}">${cat.emoji} ${cat.name}</option>`;
+            });
+
+            // Pre-fill fields
+            document.getElementById('name').value = r.name || '';
+            catSelect.value = r.category || r.mainCategory || '';
+            document.getElementById('cuisine').value = r.cuisine || 'Croatian';
+            document.getElementById('price').value = r.price || 1;
+            document.getElementById('lat').value = r.lat;
+            document.getElementById('lng').value = r.lng;
+            document.getElementById('location').value = r.address || `${r.lat}, ${r.lng}`;
+            if (r.address || r.lat) {
+                document.querySelector('.location-picker-btn').classList.add('has-location');
+                document.getElementById('locationText').textContent = r.address || `${r.lat?.toFixed(4)}, ${r.lng?.toFixed(4)}`;
+            }
+            selectedLocation = { lat: r.lat, lng: r.lng };
+
+            // Show existing cover photo
+            if (r.coverPhoto) {
+                document.getElementById('restaurantPhotoPreview').innerHTML = `<img src="${r.coverPhoto}" alt="preview">`;
+                document.getElementById('restaurantPhotoData').value = r.coverPhoto;
+                document.getElementById('removeRestaurantPhotoBtn').style.display = 'flex';
+            } else {
+                resetRestaurantPhotoForm();
+            }
         }
 
         function closeAddRestaurantModal() {
@@ -10077,24 +10217,41 @@
 
         function saveRestaurant(e) {
             if (e) e.preventDefault();
-            
+
             const nameValue = document.getElementById('name').value;
             const cuisineValue = document.getElementById('cuisine').value;
             const priceValue = document.getElementById('price').value;
             const categoryValue = document.getElementById('restaurantCategory').value;
 
-            if (!nameValue || !nameValue.trim()) {
-                alert('Please enter a restaurant name');
-                return;
-            }
-            if (!categoryValue) {
-                alert('Please choose a place category');
-                return;
-            }
+            if (!nameValue || !nameValue.trim()) { alert('Please enter a restaurant name'); return; }
+            if (!categoryValue) { alert('Please choose a place category'); return; }
 
             try {
                 const restaurantPhotoData = document.getElementById('restaurantPhotoData').value;
-                
+
+                if (_editingRestaurantId) {
+                    // UPDATE existing restaurant
+                    const r = restaurants.find(x => x.id === _editingRestaurantId);
+                    if (!r) return;
+                    r.name = nameValue.trim();
+                    r.cuisine = cuisineValue;
+                    r.price = parseInt(priceValue);
+                    r.category = categoryValue;
+                    r.mainCategory = categoryValue;
+                    r.lat = parseFloat(document.getElementById('lat').value) || r.lat;
+                    r.lng = parseFloat(document.getElementById('lng').value) || r.lng;
+                    if (restaurantPhotoData) r.coverPhoto = restaurantPhotoData;
+                    localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                    saveRestaurantToFirestore(r);
+                    loadMarkers();
+                    populateSidebar();
+                    closeAddRestaurantModal();
+                    viewRestaurantWithDishes(_editingRestaurantId);
+                    _editingRestaurantId = null;
+                    return;
+                }
+
+                // CREATE new restaurant
                 const restaurant = {
                     id: Date.now(),
                     name: nameValue.trim(),
