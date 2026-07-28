@@ -3988,6 +3988,13 @@
             color: #636e72;
         }
 
+        .login-version {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #b2bec3;
+            letter-spacing: 0.3px;
+        }
+
         .login-buttons {
             background: white;
             border-radius: 24px 24px 0 0;

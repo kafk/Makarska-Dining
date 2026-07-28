@@ -27,6 +27,9 @@ workflows:
         script: |
           mkdir -p dist
           npm run build
+          echo "--- dist contents (must include styles.css + js/) ---"
+          ls -la dist
+          ls -la dist/js
       
       - name: Add iOS platform
         script: |

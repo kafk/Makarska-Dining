@@ -8,7 +8,7 @@
 // App version shown in the UI. Keep this in sync with the "version" field in
 // package.json, which is the source of truth for native (iOS/Android) builds —
 // Codemagic reads package.json and sets the store marketing version from it.
-const APP_VERSION = '2.4.3';
+const APP_VERSION = '2.4.4';
 
 // Firebase project configuration.
 const firebaseConfig = {
@@ -28,4 +28,6 @@ const GOOGLE_API_KEY = 'AIzaSyDlyFKGOFUYSdFChTse3dZvFnOWU2E94JM';
 // source of truth for the displayed version.
 document.addEventListener('DOMContentLoaded', function () {
     document.title = 'Makarska Dining v' + APP_VERSION;
+    var vtag = document.getElementById('loginVersion');
+    if (vtag) vtag.textContent = 'v' + APP_VERSION;
 });

@@ -180,18 +180,23 @@
             }
         }
 
-        // Auth state listener
-        auth.onAuthStateChanged((user) => {
-            currentUser = user;
-            if (user) {
-                console.log('User logged in:', user.displayName || user.email);
-                // User is signed in, proceed to app
-                handleLogin();
-            } else {
-                console.log('User logged out');
-                // User is signed out, show login screen
-                showLoginScreen();
-            }
+        // Auth state listener — register on DOMContentLoaded so the handlers
+        // (handleLogin / showLoginScreen, defined in js/groups-auth.js) already exist.
+        // Otherwise Firebase can resolve the persisted session before that script
+        // loads and throw "showLoginScreen is not defined".
+        document.addEventListener('DOMContentLoaded', function () {
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                if (user) {
+                    console.log('User logged in:', user.displayName || user.email);
+                    // User is signed in, proceed to app
+                    handleLogin();
+                } else {
+                    console.log('User logged out');
+                    // User is signed out, show login screen
+                    showLoginScreen();
+                }
+            });
         });
 
         // Firestore helper functions
