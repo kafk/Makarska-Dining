@@ -136,6 +136,7 @@
                 } else {
                     map.invalidateSize();
                 }
+                fitMapBelowHeader();
                 // Sync with Firestore
                 await initFirestoreSync();
                 loadMarkers();

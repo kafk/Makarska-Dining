@@ -19,7 +19,21 @@
             populateSidebar();
             initAutocomplete();
             initUserLocation();
+            fitMapBelowHeader();
         }
+
+        // Offset the map so it starts BELOW the fixed search header — otherwise the
+        // map's zoom control and top markers get hidden behind the search bar.
+        function fitMapBelowHeader() {
+            const header = document.querySelector('.header');
+            const mapEl = document.getElementById('map');
+            if (!mapEl) return;
+            const h = header ? header.offsetHeight : 0;
+            mapEl.style.marginTop = h + 'px';
+            mapEl.style.height = 'calc(100vh - ' + h + 'px)';
+            if (map) map.invalidateSize();
+        }
+        window.addEventListener('resize', fitMapBelowHeader);
 
         // ---- Current location: live dot + "Recenter" pill when off-screen ----
         let userLocationMarker = null;
@@ -250,6 +264,7 @@
                 if (demoPinBtn) demoPinBtn.style.display = 'block';
                 const headerIcon = document.querySelector('.header h1 .header-icon');
                 if (headerIcon) headerIcon.textContent = '🍽️';
+                fitMapBelowHeader();
                 
             } else if (view === 'restaurants') {
                 restaurantsBtn.classList.add('active');
