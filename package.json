@@ -1,10 +1,10 @@
 {
   "name": "makarska-dining",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "Restaurant tracker app for Makarska, Croatia",
   "main": "index.js",
   "scripts": {
-    "build": "cp src/index.html dist/index.html",
+    "build": "mkdir -p dist && cp -R src/. dist/",
     "cap:init": "npx cap init 'Makarska Dining' com.makarska.dining",
     "cap:add:ios": "npx cap add ios",
     "cap:add:android": "npx cap add android",
