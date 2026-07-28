@@ -256,49 +256,8 @@
             }
         });
 
-        // Detect if running in Capacitor native app
-        function isNativeApp() {
-            return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
-        }
-
-        // Take photo using Capacitor Camera plugin (native) or file input (browser)
-        async function takeNativePhoto(onBase64) {
-            try {
-                const { Camera } = window.Capacitor.Plugins;
-                const image = await Camera.getPhoto({
-                    quality: 80,
-                    allowEditing: false,
-                    resultType: 'base64',
-                    source: 'CAMERA'
-                });
-                // Compress before saving so the photo fits Firestore's 1MB doc limit when
-                // Storage isn't available (base64 fallback) and uploads faster when it is.
-                compressImage('data:image/jpeg;base64,' + image.base64String, 800, 0.8, onBase64);
-            } catch (err) {
-                if (err && err.message !== 'User cancelled photos app') {
-                    alert('Could not open camera: ' + (err.message || err));
-                }
-            }
-        }
-
-        async function pickNativePhoto(onBase64) {
-            try {
-                const { Camera } = window.Capacitor.Plugins;
-                const image = await Camera.getPhoto({
-                    quality: 80,
-                    allowEditing: false,
-                    resultType: 'base64',
-                    source: 'PHOTOS'
-                });
-                // Compress before saving so the photo fits Firestore's 1MB doc limit when
-                // Storage isn't available (base64 fallback) and uploads faster when it is.
-                compressImage('data:image/jpeg;base64,' + image.base64String, 800, 0.8, onBase64);
-            } catch (err) {
-                if (err && err.message !== 'User cancelled photos app') {
-                    alert('Could not open photos: ' + (err.message || err));
-                }
-            }
-        }
+        // Native camera/gallery wrappers (isNativeApp, takeNativePhoto,
+        // pickNativePhoto) live in js/native.js.
 
         // Restaurant photo functions
         function triggerRestaurantCamera() {

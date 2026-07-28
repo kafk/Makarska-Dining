@@ -1,14 +1,4 @@
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCFAWge9ldMBE_ToKDBwn6_T1G1ZrBeQgY",
-            authDomain: "makarsk-dining.firebaseapp.com",
-            projectId: "makarsk-dining",
-            storageBucket: "makarsk-dining.firebasestorage.app",
-            messagingSenderId: "573489897014",
-            appId: "1:573489897014:web:25889f1f530a70badd8297",
-            measurementId: "G-1S9NFBM9D3"
-        };
-
+        // Firebase configuration (firebaseConfig) lives in js/config.js, loaded first.
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();

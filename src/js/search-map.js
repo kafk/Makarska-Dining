@@ -170,9 +170,7 @@
             }
         });
 
-        // Geocode using Google Maps API (works when running locally)
-        const GOOGLE_API_KEY = 'AIzaSyDlyFKGOFUYSdFChTse3dZvFnOWU2E94JM';
-        
+        // Geocode using Google Maps API (GOOGLE_API_KEY is defined in js/config.js)
         async function geocodeAddress(address, restaurantName) {
             if (!address) return null;
             

@@ -1,6 +1,6 @@
 {
   "name": "makarska-dining",
-  "version": "1.0.0",
+  "version": "2.3.0",
   "description": "Restaurant tracker app for Makarska, Croatia",
   "main": "index.js",
   "scripts": {

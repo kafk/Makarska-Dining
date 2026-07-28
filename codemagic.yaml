@@ -45,11 +45,15 @@ workflows:
         script: |
           cd ios/App && pod install
       
-      - name: Increment build number
+      - name: Set version and build number
         script: |
+          # Marketing version comes from package.json (single source of truth).
+          # Build number is a unique timestamp so every upload is accepted.
+          VERSION=$(node -p "require('./package.json').version")
           cd ios/App
+          agvtool new-marketing-version "$VERSION"
           agvtool new-version -all $(date +%Y%m%d%H%M%S)
-          echo "✅ Build number set to $(agvtool what-version -terse)"
+          echo "✅ Marketing version $VERSION, build $(agvtool what-version -terse)"
       
       - name: Set up code signing
         script: |

@@ -1306,6 +1306,9 @@
 
     </div><!-- END MAIN APP -->
 
+    <!-- App config (keys, version) — must load before firebase-data.js -->
+    <script src="js/config.js"></script>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -1315,6 +1318,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+    <!-- Native platform wrapper (Capacitor Camera) -->
+    <script src="js/native.js"></script>
     <script src="js/state.js"></script>
     <script src="js/restaurants.js"></script>
     <script src="js/dish-detail.js"></script>
