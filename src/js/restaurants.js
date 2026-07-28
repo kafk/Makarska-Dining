@@ -35,38 +35,49 @@
         }
         window.addEventListener('resize', fitMapBelowHeader);
 
-        // ---- Current location: live dot + "Recenter" pill when off-screen ----
+        // ---- Current location: live dot + always-visible "locate me" button ----
         let userLocationMarker = null;
         let userLatLng = null;
-        let recenterPill = null;
+        let locateBtn = null;
 
         function initUserLocation() {
             if (!map || !('geolocation' in navigator)) return;
 
-            // "Recenter" pill, positioned by Leaflet (top-right). Hidden until off-screen.
-            const RecenterControl = L.Control.extend({
+            // Always-visible round "locate me" button (top-right), Google Maps style.
+            const LocateControl = L.Control.extend({
                 options: { position: 'topright' },
                 onAdd: function () {
-                    const btn = L.DomUtil.create('button', 'recenter-pill');
+                    const btn = L.DomUtil.create('button', 'locate-btn');
                     btn.type = 'button';
-                    btn.innerHTML = '📍 Recenter';
-                    btn.style.display = 'none';
+                    btn.title = 'Center on my location';
+                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
                     L.DomEvent.disableClickPropagation(btn);
-                    L.DomEvent.on(btn, 'click', function () {
-                        if (userLatLng) map.setView(userLatLng, Math.max(map.getZoom(), 15));
-                    });
-                    recenterPill = btn;
+                    L.DomEvent.on(btn, 'click', goToMyLocation);
+                    locateBtn = btn;
                     return btn;
                 }
             });
-            map.addControl(new RecenterControl());
-            map.on('moveend', updateRecenterPill);
+            map.addControl(new LocateControl());
 
             navigator.geolocation.watchPosition(onUserPosition, function () { /* ignore errors */ }, {
                 enableHighAccuracy: true,
                 maximumAge: 15000,
                 timeout: 20000
             });
+        }
+
+        // Center the map on the user. If we don't have a fix yet, request one.
+        function goToMyLocation() {
+            if (userLatLng) {
+                map.setView(userLatLng, Math.max(map.getZoom(), 16));
+            } else if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    onUserPosition(pos);
+                    if (userLatLng) map.setView(userLatLng, 16);
+                }, function () {
+                    alert('Could not get your location. Please allow location access.');
+                }, { enableHighAccuracy: true, timeout: 20000 });
+            }
         }
 
         function onUserPosition(pos) {
@@ -83,12 +94,6 @@
             } else {
                 userLocationMarker.setLatLng(userLatLng);
             }
-            updateRecenterPill();
-        }
-
-        function updateRecenterPill() {
-            if (!recenterPill || !userLatLng || !map) return;
-            recenterPill.style.display = map.getBounds().contains(userLatLng) ? 'none' : 'flex';
         }
 
         // Restaurant autocomplete using OpenStreetMap
