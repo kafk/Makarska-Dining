@@ -18,6 +18,63 @@
             loadMarkers();
             populateSidebar();
             initAutocomplete();
+            initUserLocation();
+        }
+
+        // ---- Current location: live dot + "Recenter" pill when off-screen ----
+        let userLocationMarker = null;
+        let userLatLng = null;
+        let recenterPill = null;
+
+        function initUserLocation() {
+            if (!map || !('geolocation' in navigator)) return;
+
+            // "Recenter" pill, positioned by Leaflet (top-right). Hidden until off-screen.
+            const RecenterControl = L.Control.extend({
+                options: { position: 'topright' },
+                onAdd: function () {
+                    const btn = L.DomUtil.create('button', 'recenter-pill');
+                    btn.type = 'button';
+                    btn.innerHTML = '📍 Recenter';
+                    btn.style.display = 'none';
+                    L.DomEvent.disableClickPropagation(btn);
+                    L.DomEvent.on(btn, 'click', function () {
+                        if (userLatLng) map.setView(userLatLng, Math.max(map.getZoom(), 15));
+                    });
+                    recenterPill = btn;
+                    return btn;
+                }
+            });
+            map.addControl(new RecenterControl());
+            map.on('moveend', updateRecenterPill);
+
+            navigator.geolocation.watchPosition(onUserPosition, function () { /* ignore errors */ }, {
+                enableHighAccuracy: true,
+                maximumAge: 15000,
+                timeout: 20000
+            });
+        }
+
+        function onUserPosition(pos) {
+            userLatLng = [pos.coords.latitude, pos.coords.longitude];
+            if (!userLocationMarker) {
+                userLocationMarker = L.circleMarker(userLatLng, {
+                    radius: 7,
+                    color: '#ffffff',
+                    weight: 3,
+                    fillColor: '#4285F4',
+                    fillOpacity: 1,
+                    interactive: false
+                }).addTo(map);
+            } else {
+                userLocationMarker.setLatLng(userLatLng);
+            }
+            updateRecenterPill();
+        }
+
+        function updateRecenterPill() {
+            if (!recenterPill || !userLatLng || !map) return;
+            recenterPill.style.display = map.getBounds().contains(userLatLng) ? 'none' : 'flex';
         }
 
         // Restaurant autocomplete using OpenStreetMap

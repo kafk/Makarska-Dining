@@ -8,7 +8,7 @@
 // App version shown in the UI. Keep this in sync with the "version" field in
 // package.json, which is the source of truth for native (iOS/Android) builds —
 // Codemagic reads package.json and sets the store marketing version from it.
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.4.0';
 
 // Firebase project configuration.
 const firebaseConfig = {
