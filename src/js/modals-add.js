@@ -49,6 +49,7 @@
             catSelect.value = r.category || r.mainCategory || '';
             document.getElementById('cuisine').value = r.cuisine || 'Croatian';
             document.getElementById('price').value = r.price || 1;
+            document.getElementById('payment').value = r.payment || 'both';
             document.getElementById('lat').value = r.lat;
             document.getElementById('lng').value = r.lng;
             document.getElementById('location').value = r.address || `${r.lat}, ${r.lng}`;

@@ -764,6 +764,10 @@
                         <span class="info-value" style="color: #27ae60; font-weight: 700;">${priceSymbol}</span>
                     </div>
                     <div class="info-row">
+                        <span class="info-label">Payment</span>
+                        <span class="info-value">${({both:'💳 Card & Cash', card:'💳 Card only', cash:'💵 Cash only'})[restaurant.payment] || '—'}</span>
+                    </div>
+                    <div class="info-row">
                         <span class="info-label">Overall Rating</span>
                         <span class="info-value rating-stars">${'★'.repeat(Math.round(avgRating))}${'☆'.repeat(5 - Math.round(avgRating))} ${avgRating}/5</span>
                     </div>

@@ -12,6 +12,7 @@
             const nameValue = document.getElementById('name').value;
             const cuisineValue = document.getElementById('cuisine').value;
             const priceValue = document.getElementById('price').value;
+            const paymentValue = document.getElementById('payment').value;
             const categoryValue = document.getElementById('restaurantCategory').value;
 
             if (!nameValue || !nameValue.trim()) { alert('Please enter a restaurant name'); return; }
@@ -26,6 +27,7 @@
                     r.name = nameValue.trim();
                     r.cuisine = cuisineValue;
                     r.price = parseInt(priceValue);
+                    r.payment = paymentValue;
                     r.category = categoryValue;
                     r.mainCategory = categoryValue;
                     r.lat = parseFloat(document.getElementById('lat').value) || r.lat;
@@ -56,6 +58,7 @@
                     name: nameValue.trim(),
                     cuisine: cuisineValue,
                     price: parseInt(priceValue),
+                    payment: paymentValue,
                     category: categoryValue,
                     mainCategory: categoryValue,
                     lat: parseFloat(document.getElementById('lat').value) || 43.2964,
