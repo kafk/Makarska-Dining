@@ -4604,8 +4604,10 @@
         }
 
         .splash-full-image {
-            width: 100%;
-            height: 100%;
+            max-width: 88%;
+            max-height: 80%;
+            width: auto;
+            height: auto;
             object-fit: contain;
         }
 
