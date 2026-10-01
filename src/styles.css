@@ -2966,13 +2966,16 @@
 
         .modal-content {
             position: absolute;
-            bottom: 70px;
+            bottom: 0;
             left: 0;
             right: 0;
             background: white;
             border-radius: 32px 32px 0 0;
-            padding: 28px 24px 40px 24px;
-            max-height: calc(90vh - 70px);
+            padding: 28px 24px calc(40px + env(safe-area-inset-bottom)) 24px;
+            max-height: 90vh;
+            /* dvh = visible viewport so the sheet top/bottom aren't clipped by
+               the Safari URL bar — lets the form scroll fully top to bottom. */
+            max-height: 90dvh;
             overflow-y: auto;
             overflow-x: hidden;
             animation: slideUp 0.3s ease-out;
@@ -2993,7 +2996,7 @@
 
         @media (min-width: 768px) {
             .modal-content {
-                bottom: 70px;
+                bottom: 0;
                 top: auto;
                 left: 50%;
                 right: auto;
@@ -3002,7 +3005,7 @@
                 max-width: 540px;
                 width: 90%;
                 animation: slideUpCentered 0.3s ease-out forwards;
-                max-height: calc(90vh - 70px);
+                max-height: 90dvh;
             }
         }
 
