@@ -260,10 +260,17 @@
 
         // ========== GROUPS FIRESTORE FUNCTIONS ==========
 
+        // Per-user groups doc id — namespaced by Auth UID so each user's group
+        // list is private (was a single shared 'groups' doc = everyone saw the same list).
+        function groupsDocId() {
+            return auth.currentUser ? auth.currentUser.uid : null;
+        }
+
         async function saveGroupsToFirestore(groupsData) {
+            const docId = groupsDocId();
+            if (!docId) return false; // not signed in — nothing to scope the list to
             try {
-                // Save all groups as a single document (simpler for user-specific data)
-                await db.collection('userdata').doc('groups').set({ groups: groupsData });
+                await db.collection('userdata').doc(docId).set({ groups: groupsData });
                 console.log('☁️ Groups saved to Firestore:', groupsData.length, 'groups');
                 return true;
             } catch (error) {
@@ -273,8 +280,10 @@
         }
 
         async function loadGroupsFromFirestore() {
+            const docId = groupsDocId();
+            if (!docId) return null;
             try {
-                const doc = await db.collection('userdata').doc('groups').get();
+                const doc = await db.collection('userdata').doc(docId).get();
                 if (doc.exists && doc.data().groups) {
                     console.log('☁️ Loaded groups from Firestore:', doc.data().groups.length);
                     return doc.data().groups;
