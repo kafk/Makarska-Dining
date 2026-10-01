@@ -2966,16 +2966,16 @@
 
         .modal-content {
             position: absolute;
+            top: 5vh;
+            /* Pin between a fixed top offset and the bottom so the sheet top is
+               always on-screen (even with the keyboard open); content scrolls inside. */
+            top: 5dvh;
             bottom: 0;
             left: 0;
             right: 0;
             background: white;
             border-radius: 32px 32px 0 0;
             padding: 28px 24px calc(40px + env(safe-area-inset-bottom)) 24px;
-            max-height: 90vh;
-            /* dvh = visible viewport so the sheet top/bottom aren't clipped by
-               the Safari URL bar — lets the form scroll fully top to bottom. */
-            max-height: 90dvh;
             overflow-y: auto;
             overflow-x: hidden;
             animation: slideUp 0.3s ease-out;
