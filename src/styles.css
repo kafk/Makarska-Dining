@@ -4130,7 +4130,7 @@
 
         .empty-header {
             background: white;
-            padding: 20px;
+            padding: calc(20px + env(safe-area-inset-top)) 20px 20px;
             border-bottom: 1px solid #e9ecef;
         }
 
@@ -4282,7 +4282,7 @@
 
         .form-header {
             background: white;
-            padding: 16px 20px;
+            padding: calc(16px + env(safe-area-inset-top)) 20px 16px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -4457,7 +4457,7 @@
 
         .groups-header {
             background: white;
-            padding: 20px;
+            padding: calc(20px + env(safe-area-inset-top)) 20px 20px;
             border-bottom: 1px solid #e9ecef;
         }
 
