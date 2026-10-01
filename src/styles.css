@@ -4612,6 +4612,8 @@
             width: auto;
             height: auto;
             object-fit: contain;
+            /* multiply makes the PNG's white background blend into the splash bg */
+            mix-blend-mode: multiply;
         }
 
         .splash-waves {
