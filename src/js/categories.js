@@ -14,6 +14,64 @@
             return [...defaultCategories, ...customCategories];
         }
 
+        // ===== Custom categories Firestore sync (shared across the dining group) =====
+        async function saveCategoriesToFirestore() {
+            if (typeof db === 'undefined') return false;
+            try {
+                await db.collection('userdata').doc('sharedCategories').set({
+                    customCategories: customCategories || [],
+                    customSubcategories: customSubcategories || [],
+                    customPriceRanges: customPriceRanges || []
+                });
+                return true;
+            } catch (e) {
+                console.warn('Could not save categories to Firestore:', e.message);
+                return false;
+            }
+        }
+
+        function applyCustomSubcategoriesToFilters() {
+            if (typeof filterSubcategories === 'undefined') return;
+            customSubcategories.forEach(s => {
+                const cid = s.categoryId || s.parentId;
+                if (!cid) return;
+                if (!filterSubcategories[cid]) filterSubcategories[cid] = [{ id: 'all', label: '🍽️ All' }];
+                if (!filterSubcategories[cid].some(x => x.id === s.id)) {
+                    filterSubcategories[cid].push({ id: s.id, label: s.label || `${s.emoji} ${s.name}` });
+                }
+            });
+        }
+
+        async function initCategoriesFirestoreSync() {
+            if (typeof db === 'undefined') return;
+            try {
+                const doc = await db.collection('userdata').doc('sharedCategories').get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (Array.isArray(data.customCategories)) {
+                        customCategories = data.customCategories;
+                        localStorage.setItem('customCategories', JSON.stringify(customCategories));
+                    }
+                    if (Array.isArray(data.customSubcategories)) {
+                        customSubcategories = data.customSubcategories;
+                        localStorage.setItem('customSubcategories', JSON.stringify(customSubcategories));
+                    }
+                    if (Array.isArray(data.customPriceRanges)) {
+                        customPriceRanges = data.customPriceRanges;
+                        localStorage.setItem('customPriceRanges', JSON.stringify(customPriceRanges));
+                    }
+                    applyCustomSubcategoriesToFilters();
+                    if (typeof populateCategoryFilters === 'function') populateCategoryFilters();
+                    if (typeof populateSettingsLists === 'function') populateSettingsLists();
+                } else if (customCategories.length || customSubcategories.length || customPriceRanges.length) {
+                    // First run on cloud: push whatever this device already has.
+                    await saveCategoriesToFirestore();
+                }
+            } catch (e) {
+                console.warn('Categories Firestore sync failed:', e.message);
+            }
+        }
+
         function populateSettingsLists() {
             populateCategoriesList();
             populateSubcategoriesList();
@@ -247,6 +305,7 @@
             
             customCategories.push({ id, name, emoji });
             localStorage.setItem('customCategories', JSON.stringify(customCategories));
+            saveCategoriesToFirestore();
             
             closeAddCategoryModal();
             populateCategoriesList();
@@ -282,6 +341,7 @@
                 filterSubcategories[categoryId] = [{ id: 'all', label: '🍽️ All' }];
             }
             filterSubcategories[categoryId].push({ id, label: `${emoji} ${name}` });
+            saveCategoriesToFirestore();
             
             closeAddSubcategoryModal();
             populateSubcategoriesList();
@@ -310,6 +370,7 @@
                 desc
             });
             localStorage.setItem('customPriceRanges', JSON.stringify(customPriceRanges));
+            saveCategoriesToFirestore();
             
             closeAddPriceRangeModal();
             populateSettingsLists();
@@ -328,6 +389,7 @@
             } else {
                 customCategories = customCategories.filter(c => c.id !== id);
                 localStorage.setItem('customCategories', JSON.stringify(customCategories));
+                saveCategoriesToFirestore();
             }
             populateCategoriesList();
         }
@@ -343,6 +405,7 @@
             } else {
                 customSubcategories = customSubcategories.filter(s => !(s.id === id && s.categoryId === categoryId));
                 localStorage.setItem('customSubcategories', JSON.stringify(customSubcategories));
+                saveCategoriesToFirestore();
                 
                 // Remove from filterSubcategories
                 if (filterSubcategories[categoryId]) {
@@ -358,6 +421,7 @@
             
             customPriceRanges.splice(index, 1);
             localStorage.setItem('customPriceRanges', JSON.stringify(customPriceRanges));
+            saveCategoriesToFirestore();
             populateSettingsLists();
         }
 

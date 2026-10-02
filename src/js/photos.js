@@ -408,6 +408,7 @@
                             const url = await uploadPhoto(compressedImage, storagePhotoPath(restaurantId, 'cover', 'cover.jpg'));
                             restaurant.coverPhoto = url;
                             localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                            saveRestaurantToFirestore(restaurant);
 
                             // Refresh the view
                             viewRestaurantWithDishes(restaurantId);

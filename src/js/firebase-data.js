@@ -369,6 +369,11 @@
                 // Also sync groups
                 await initGroupsFirestoreSync();
 
+                // Sync shared custom categories/subcategories/price ranges
+                if (typeof initCategoriesFirestoreSync === 'function') {
+                    await initCategoriesFirestoreSync();
+                }
+
                 updateSyncStatus(true);
             } catch (error) {
                 console.error('❌ Firestore sync failed:', error);

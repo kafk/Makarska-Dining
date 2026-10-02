@@ -2764,7 +2764,7 @@
             height: 100%;
             background: rgba(45,52,54,0.6);
             backdrop-filter: blur(4px);
-            z-index: 2000;
+            z-index: 4000;
             animation: fadeIn 0.3s;
         }
 
