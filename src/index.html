@@ -745,7 +745,10 @@
                     <span class="restaurants-header-icon">📁</span>
                     <span class="restaurants-header-name">Categories</span>
                 </div>
-                <button class="settings-add-btn" onclick="openAddCategoryModal()">+ Add</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="settings-add-btn" onclick="syncCategoriesNow(this)" style="background:#eef2ff; color:#4f6ef7;">☁️ Sync</button>
+                    <button class="settings-add-btn" onclick="openAddCategoryModal()">+ Add</button>
+                </div>
             </div>
         </div>
         <div class="settings-content">

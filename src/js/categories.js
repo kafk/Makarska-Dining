@@ -72,6 +72,45 @@
             }
         }
 
+        // Manual "Sync" button: merge cloud + local (no data loss) and save both ways.
+        async function syncCategoriesNow(btn) {
+            if (typeof db === 'undefined') { alert('Not connected.'); return; }
+            const label = btn ? btn.textContent : null;
+            if (btn) { btn.textContent = '⏳ Syncing…'; btn.disabled = true; }
+            try {
+                const doc = await db.collection('userdata').doc('sharedCategories').get();
+                const remote = doc.exists ? doc.data() : {};
+
+                const mergeById = (local, incoming, keyFn) => {
+                    const map = new Map();
+                    (local || []).concat(incoming || []).forEach(item => map.set(keyFn(item), item));
+                    return [...map.values()];
+                };
+
+                customCategories = mergeById(customCategories, remote.customCategories, c => c.id);
+                customSubcategories = mergeById(customSubcategories, remote.customSubcategories,
+                    s => (s.categoryId || s.parentId || '') + '::' + s.id);
+                customPriceRanges = mergeById(customPriceRanges, remote.customPriceRanges,
+                    p => JSON.stringify([p.categoryId, p.subcategoryId, p.level, p.label]));
+
+                localStorage.setItem('customCategories', JSON.stringify(customCategories));
+                localStorage.setItem('customSubcategories', JSON.stringify(customSubcategories));
+                localStorage.setItem('customPriceRanges', JSON.stringify(customPriceRanges));
+
+                await saveCategoriesToFirestore();
+                applyCustomSubcategoriesToFilters();
+                if (typeof populateCategoryFilters === 'function') populateCategoryFilters();
+                if (typeof populateSettingsLists === 'function') populateSettingsLists();
+                populateCategoriesList();
+
+                if (btn) { btn.textContent = '✅ Synced'; setTimeout(() => { btn.textContent = label; btn.disabled = false; }, 1500); }
+            } catch (e) {
+                console.warn('Manual category sync failed:', e.message);
+                alert('Sync failed: ' + e.message);
+                if (btn) { btn.textContent = label; btn.disabled = false; }
+            }
+        }
+
         function populateSettingsLists() {
             populateCategoriesList();
             populateSubcategoriesList();
