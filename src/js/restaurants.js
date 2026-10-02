@@ -66,14 +66,14 @@
             });
         }
 
-        // Center the map on the user. If we don't have a fix yet, request one.
+        // Center the map on the user and zoom all the way in. If we don't have a fix yet, request one.
         function goToMyLocation() {
             if (userLatLng) {
-                map.setView(userLatLng, Math.max(map.getZoom(), 16));
+                map.setView(userLatLng, map.getMaxZoom());
             } else if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(function (pos) {
                     onUserPosition(pos);
-                    if (userLatLng) map.setView(userLatLng, 16);
+                    if (userLatLng) map.setView(userLatLng, map.getMaxZoom());
                 }, function () {
                     alert('Could not get your location. Please allow location access.');
                 }, { enableHighAccuracy: true, timeout: 20000 });
