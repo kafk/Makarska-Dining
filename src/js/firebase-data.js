@@ -200,6 +200,11 @@
         });
 
         // Firestore helper functions
+        // JSON round-trip drops undefined-valued keys, which Firestore .set() rejects.
+        function sanitizeForFirestore(obj) {
+            return JSON.parse(JSON.stringify(obj));
+        }
+
         async function saveRestaurantsToFirestore(restaurantsData) {
             try {
                 const batch = db.batch();
@@ -207,7 +212,7 @@
                 // Save each restaurant as a document
                 restaurantsData.forEach(restaurant => {
                     const docRef = db.collection('restaurants').doc(String(restaurant.id));
-                    batch.set(docRef, restaurant);
+                    batch.set(docRef, sanitizeForFirestore(restaurant));
                 });
 
                 await batch.commit();
@@ -238,7 +243,7 @@
 
         async function saveRestaurantToFirestore(restaurant) {
             try {
-                await db.collection('restaurants').doc(String(restaurant.id)).set(restaurant);
+                await db.collection('restaurants').doc(String(restaurant.id)).set(sanitizeForFirestore(restaurant));
                 console.log('☁️ Saved to Firestore:', restaurant.name);
                 return true;
             } catch (error) {

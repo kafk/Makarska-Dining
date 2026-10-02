@@ -366,7 +366,10 @@
             const url = await uploadPhoto(base64, storagePhotoPath(restaurantId, `food/${foodItemId}`, 'cover.jpg'));
             item.photo = url;
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
-            saveRestaurantToFirestore(restaurant);
+            const ok = await saveRestaurantToFirestore(restaurant);
+            if (!ok) {
+                alert('⚠️ Photo saved on this device but could not sync to the cloud. It may be too large or you may be offline — it could disappear on other devices or after a refresh.');
+            }
             _dishPhotoTarget = null;
             closeDishDetail();
             setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null, photo: item.photo }), 100);
