@@ -148,6 +148,8 @@
                         <div style="font-weight:700;font-size:13px;color:#2d3436;margin-bottom:8px;">📋 Visit History</div>
                         ${visitsHtml || '<div style="color:#aaa;font-size:13px;">No visits recorded yet.</div>'}
                     </div>
+                    ${dish.foodItemId ? `
+                    <button onclick="deleteDish(${dish.restaurantId},${dish.foodItemId})" style="width:100%;margin-top:16px;padding:11px;background:#fff0f0;color:#e74c3c;border:1.5px solid #e74c3c;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">🗑️ Remove Dish</button>` : ''}
                 `;
 
                 modal.style.display = 'block';
@@ -158,6 +160,28 @@
 
         function closeDishDetail() {
             document.getElementById('dishDetailModal').style.display = 'none';
+        }
+
+        function deleteDish(restaurantId, foodItemId) {
+            if (!confirm('Remove this dish? This cannot be undone.')) return;
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            if (!restaurant || !restaurant.foodItems) return;
+            restaurant.foodItems = restaurant.foodItems.filter(f => f.id !== foodItemId);
+            // Recompute restaurant ratings from remaining dishes
+            const rated = restaurant.foodItems.filter(f => f.foodRating > 0);
+            if (rated.length > 0) {
+                restaurant.foodRating = Math.round(rated.reduce((s, f) => s + f.foodRating, 0) / rated.length);
+                restaurant.serviceRating = Math.round(rated.reduce((s, f) => s + (f.serviceRating || 0), 0) / rated.length);
+            } else {
+                restaurant.foodRating = 0;
+                restaurant.serviceRating = 0;
+            }
+            localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            saveRestaurantToFirestore(restaurant);
+            closeDishDetail();
+            if (typeof loadMarkers === 'function') loadMarkers();
+            if (typeof populateSidebar === 'function') populateSidebar();
+            if (typeof viewRestaurantWithDishes === 'function') viewRestaurantWithDishes(restaurantId);
         }
 
         function editFoodItemName(restaurantId, foodItemId) {
