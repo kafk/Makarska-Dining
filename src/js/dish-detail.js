@@ -387,16 +387,21 @@
             const restaurant = restaurants.find(r => r.id === restaurantId);
             const item = restaurant && restaurant.foodItems && restaurant.foodItems.find(f => f.id === foodItemId);
             if (!item) return;
-            const url = await uploadPhoto(base64, storagePhotoPath(restaurantId, `food/${foodItemId}`, 'cover.jpg'));
-            item.photo = url;
+            _dishPhotoTarget = null;
+            // Show immediately with the local image, then upload/swap + sync in the background.
+            item.photo = base64;
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            closeDishDetail();
+            setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null, photo: item.photo }), 100);
+            const url = await uploadPhoto(base64, storagePhotoPath(restaurantId, `food/${foodItemId}`, 'cover.jpg'));
+            if (url && url !== base64) {
+                item.photo = url;
+                localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            }
             const ok = await saveRestaurantToFirestore(restaurant);
             if (!ok) {
                 alert('⚠️ Photo saved on this device but could not sync to the cloud. It may be too large or you may be offline — it could disappear on other devices or after a refresh.');
             }
-            _dishPhotoTarget = null;
-            closeDishDetail();
-            setTimeout(() => viewDishDetail({ name: item.name, restaurant: restaurant.name, restaurantId, foodItemId: item.id, category: item.subcategory || item.category || '', mainCategory: item.category || '', emoji: getCategoryEmoji(item.category || 'food'), visits: item.visits || null, photo: item.photo }), 100);
         }
 
         function openAddVisitForm() {

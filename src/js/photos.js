@@ -992,11 +992,16 @@
             const restaurant = restaurants.find(r => r.id === id);
             if (!restaurant) return;
             if (!restaurant.menuPhotos) restaurant.menuPhotos = [];
-            const url = await uploadPhoto(base64, storagePhotoPath(id, 'menu', Date.now() + '.jpg'));
-            restaurant.menuPhotos.push(url);
+            // Show immediately with the local image, then upload/swap in the background.
+            const idx = restaurant.menuPhotos.push(base64) - 1;
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
-            saveRestaurantToFirestore(restaurant);
             viewRestaurantWithDishes(id);
+            const url = await uploadPhoto(base64, storagePhotoPath(id, 'menu', Date.now() + '.jpg'));
+            if (url && url !== base64) {
+                restaurant.menuPhotos[idx] = url;
+                localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            }
+            saveRestaurantToFirestore(restaurant);
         }
         function deleteMenuPhoto(id, index) {
             if (!confirm('Delete this menu photo?')) return;
@@ -1042,11 +1047,16 @@
             const restaurant = restaurants.find(r => r.id === id);
             if (!restaurant) return;
             if (!restaurant.receiptPhotos) restaurant.receiptPhotos = [];
-            const url = await uploadPhoto(base64, storagePhotoPath(id, 'receipts', Date.now() + '.jpg'));
-            restaurant.receiptPhotos.push(url);
+            // Show immediately with the local image, then upload/swap in the background.
+            const idx = restaurant.receiptPhotos.push(base64) - 1;
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
-            saveRestaurantToFirestore(restaurant);
             viewRestaurantWithDishes(id);
+            const url = await uploadPhoto(base64, storagePhotoPath(id, 'receipts', Date.now() + '.jpg'));
+            if (url && url !== base64) {
+                restaurant.receiptPhotos[idx] = url;
+                localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            }
+            saveRestaurantToFirestore(restaurant);
         }
         function deleteReceiptPhoto(id, index) {
             if (!confirm('Delete this receipt photo?')) return;
