@@ -66,18 +66,35 @@
             });
         }
 
-        // Center the map on the user and zoom all the way in. If we don't have a fix yet, request one.
+        // Center the map on the user and zoom all the way in.
+        // Always requests a fresh fix on tap (a user gesture is the most reliable
+        // trigger for the iOS permission prompt), with clear per-error messaging.
         function goToMyLocation() {
-            if (userLatLng) {
-                map.setView(userLatLng, map.getMaxZoom());
-            } else if ('geolocation' in navigator) {
-                navigator.geolocation.getCurrentPosition(function (pos) {
-                    onUserPosition(pos);
-                    if (userLatLng) map.setView(userLatLng, map.getMaxZoom());
-                }, function () {
-                    alert('Could not get your location. Please allow location access.');
-                }, { enableHighAccuracy: true, timeout: 20000 });
+            if (!('geolocation' in navigator)) {
+                alert('Location is not available on this device or browser.');
+                return;
             }
+            if (locateBtn) locateBtn.classList.add('locating');
+            navigator.geolocation.getCurrentPosition(function (pos) {
+                if (locateBtn) locateBtn.classList.remove('locating');
+                onUserPosition(pos);
+                if (userLatLng) map.setView(userLatLng, map.getMaxZoom());
+            }, function (err) {
+                if (locateBtn) locateBtn.classList.remove('locating');
+                // If we already have a previous fix, still center there.
+                if (userLatLng) { map.setView(userLatLng, map.getMaxZoom()); return; }
+                let msg;
+                if (err && err.code === 1) {
+                    msg = 'Location permission is blocked. Turn it on in Settings → Privacy → Location Services (and allow this app/Safari), then tap the button again.';
+                } else if (err && err.code === 2) {
+                    msg = 'Your location is currently unavailable. Make sure Location Services are on and try again.';
+                } else if (err && err.code === 3) {
+                    msg = 'Timed out getting your location. Please try again.';
+                } else {
+                    msg = 'Could not get your location.';
+                }
+                alert(msg);
+            }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
         }
 
         function onUserPosition(pos) {
