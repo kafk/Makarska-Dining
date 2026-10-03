@@ -401,21 +401,22 @@
                 
                 reader.onload = function(e) {
                     try {
-                        // Compress and save
+                        // Compress, show immediately with the local image, then upload/swap + sync in the background.
                         compressImage(e.target.result, 800, 0.8, async function(compressedImage) {
                             const restaurant = restaurants.find(r => r.id === restaurantId);
                             if (!restaurant) return;
-                            const url = await uploadPhoto(compressedImage, storagePhotoPath(restaurantId, 'cover', 'cover.jpg'));
-                            restaurant.coverPhoto = url;
+                            restaurant.coverPhoto = compressedImage;
                             localStorage.setItem('restaurants', JSON.stringify(restaurants));
-                            saveRestaurantToFirestore(restaurant);
-
-                            // Refresh the view
                             viewRestaurantWithDishes(restaurantId);
-                            
-                            // Also update markers to show new photo in list
                             loadMarkers();
                             populateSidebar();
+
+                            const url = await uploadPhoto(compressedImage, storagePhotoPath(restaurantId, 'cover', 'cover.jpg'));
+                            if (url && url !== compressedImage) {
+                                restaurant.coverPhoto = url;
+                                localStorage.setItem('restaurants', JSON.stringify(restaurants));
+                            }
+                            saveRestaurantToFirestore(restaurant);
                         });
                     } catch (err) {
                         alert('Error processing photo. Please try again.');
@@ -861,10 +862,12 @@
             if (!restaurant.photos) restaurant.photos = [];
 
             const ts = Date.now();
-            const url = await uploadPhoto(pendingPhotoData, storagePhotoPath(pendingPhotoRestaurantId, 'photos', `${ts}.jpg`));
+            // Capture before closePhotoRatingModal() clears the pending state.
+            const photoData = pendingPhotoData;
+            const rid = pendingPhotoRestaurantId;
 
             const photoObject = {
-                url: url,
+                url: photoData,
                 rating: currentPhotoRating,
                 category: categoryId,
                 subcategory: document.getElementById('photoSubcategory')?.value || '',
@@ -878,17 +881,22 @@
 
             try {
                 localStorage.setItem('restaurants', JSON.stringify(restaurants));
-                // Sync to Firestore
-                saveRestaurantToFirestore(restaurant);
             } catch (e) {
                 alert('Storage full! Try deleting some photos first.');
                 restaurant.photos.pop();
                 return;
             }
 
-            // Close modal and refresh view
+            // Close + show immediately, then upload/swap + sync in the background.
             closePhotoRatingModal();
-            viewRestaurantWithDishes(pendingPhotoRestaurantId);
+            viewRestaurantWithDishes(rid);
+
+            const url = await uploadPhoto(photoData, storagePhotoPath(rid, 'photos', `${ts}.jpg`));
+            if (url && url !== photoData) {
+                photoObject.url = url;
+                localStorage.setItem('restaurants', JSON.stringify(restaurants));
+            }
+            saveRestaurantToFirestore(restaurant);
         }
 
         function compressImage(dataUrl, maxWidth, quality, callback) {
