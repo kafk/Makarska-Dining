@@ -2804,7 +2804,9 @@
             /* dvh = visible viewport (excludes Safari URL bar) so the sheet top
                never slips behind the address bar / notch. */
             max-height: calc(90dvh - env(safe-area-inset-top));
-            overflow: hidden;
+            /* Whole sheet scrolls (hero image scrolls away with the content). */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             animation: slideUp 0.3s ease-out;
             display: flex;
             flex-direction: column;
@@ -2938,8 +2940,8 @@
         }
 
         .restaurant-detail-body {
-            flex: 1;
-            overflow-y: auto;
+            flex: 0 0 auto;
+            overflow-y: visible;
             padding: 20px;
             padding-bottom: 100px;
         }

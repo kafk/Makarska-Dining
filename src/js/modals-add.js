@@ -305,9 +305,7 @@
         }
 
         function setRestaurantPhotoFromBase64(base64) {
-            compressImage(base64, 800, 0.8, function(compressed) {
-                showRestaurantPhotoPreview(compressed);
-            });
+            showCropStep(base64, showRestaurantPhotoPreview);
         }
 
         function handleRestaurantPhotoSelect(event) {
@@ -341,10 +339,8 @@
                 
                 reader.onload = function(e) {
                     try {
-                        // Compress and show preview
-                        compressImage(e.target.result, 800, 0.8, function(compressedImage) {
-                            showRestaurantPhotoPreview(compressedImage);
-                        });
+                        // Reposition/crop step, then preview.
+                        showCropStep(e.target.result, showRestaurantPhotoPreview);
                     } catch (err) {
                         alert('Error processing photo. Please try again.');
                     }

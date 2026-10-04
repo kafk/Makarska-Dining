@@ -350,7 +350,7 @@
         function triggerDishPhotoCamera(restaurantId, foodItemId) {
             _dishPhotoTarget = { restaurantId, foodItemId };
             if (isNativeApp()) {
-                takeNativePhoto(b64 => saveDishPhoto(b64));
+                takeNativePhoto(b64 => showCropStep(b64, saveDishPhoto));
             } else {
                 let inp = document.getElementById('_dishPhotoCameraInput');
                 if (!inp) {
@@ -358,7 +358,7 @@
                     inp.type = 'file'; inp.id = '_dishPhotoCameraInput';
                     inp.accept = 'image/*'; inp.setAttribute('capture', 'environment');
                     inp.style.display = 'none';
-                    inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => compressImage(ev.target.result, 800, 0.8, saveDishPhoto); r.readAsDataURL(f); e.target.value = ''; };
+                    inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => showCropStep(ev.target.result, saveDishPhoto); r.readAsDataURL(f); e.target.value = ''; };
                     document.body.appendChild(inp);
                 }
                 inp.click();
@@ -368,14 +368,14 @@
         function triggerDishPhotoGallery(restaurantId, foodItemId) {
             _dishPhotoTarget = { restaurantId, foodItemId };
             if (isNativeApp()) {
-                pickNativePhoto(b64 => saveDishPhoto(b64));
+                pickNativePhoto(b64 => showCropStep(b64, saveDishPhoto));
             } else {
                 let inp = document.getElementById('_dishPhotoGalleryInput');
                 if (!inp) {
                     inp = document.createElement('input');
                     inp.type = 'file'; inp.id = '_dishPhotoGalleryInput';
                     inp.accept = 'image/*'; inp.style.display = 'none';
-                    inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => compressImage(ev.target.result, 800, 0.8, saveDishPhoto); r.readAsDataURL(f); e.target.value = ''; };
+                    inp.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => showCropStep(ev.target.result, saveDishPhoto); r.readAsDataURL(f); e.target.value = ''; };
                     document.body.appendChild(inp);
                 }
                 inp.click();

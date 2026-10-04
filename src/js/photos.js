@@ -265,10 +265,8 @@
                 
                 reader.onload = function(e) {
                     try {
-                        // Compress and show preview
-                        compressImage(e.target.result, 800, 0.8, function(compressedImage) {
-                            showFoodPhotoPreview(compressedImage);
-                        });
+                        // Reposition/crop step, then preview.
+                        showCropStep(e.target.result, showFoodPhotoPreview);
                     } catch (err) {
                         alert('Error processing photo. Please try again.');
                     }
@@ -417,8 +415,8 @@
                 
                 reader.onload = function(e) {
                     try {
-                        // Compress, show immediately with the local image, then upload/swap + sync in the background.
-                        compressImage(e.target.result, 800, 0.8, async function(compressedImage) {
+                        // Reposition/crop step, then show immediately + upload/swap + sync in the background.
+                        showCropStep(e.target.result, async function(compressedImage) {
                             const restaurant = restaurants.find(r => r.id === restaurantId);
                             if (!restaurant) return;
                             restaurant.coverPhoto = compressedImage;
@@ -518,13 +516,17 @@
         let cropIsDragging = false;
         let cropOriginalImage = null;
         let cropRestaurantId = null;
+        let _cropOnConfirm = null;
 
-        function showPhotoCropModal(imageUrl, restaurantId) {
-            // Debug: confirm function is called
-            console.log('showPhotoCropModal called', restaurantId);
-            
+        // Generic reposition/zoom crop step; calls onConfirm(croppedDataUrl).
+        function showCropStep(imageUrl, onConfirm) {
+            showPhotoCropModal(imageUrl, null, onConfirm);
+        }
+
+        function showPhotoCropModal(imageUrl, restaurantId, onConfirm) {
             cropOriginalImage = imageUrl;
             cropRestaurantId = restaurantId;
+            _cropOnConfirm = onConfirm || null;
             cropImageScale = 1;
             cropImageX = 0;
             cropImageY = 0;
@@ -666,6 +668,7 @@
             }
             cropOriginalImage = null;
             cropRestaurantId = null;
+            _cropOnConfirm = null;
         }
 
         function confirmPhotoCrop() {
@@ -716,20 +719,27 @@
                 
                 const croppedImage = canvas.toDataURL('image/jpeg', 0.85);
                 
-                // Close crop modal and show rating modal
+                // Generic callers (cover/dish/food) get the cropped image directly.
+                const cb = _cropOnConfirm;
+                const rid = cropRestaurantId;
                 closePhotoCropModal();
+                if (cb) { compressImage(croppedImage, 800, 0.85, cb); return; }
                 
                 pendingPhotoData = croppedImage;
-                pendingPhotoRestaurantId = cropRestaurantId;
+                pendingPhotoRestaurantId = rid;
                 currentPhotoRating = 0;
                 showPhotoRatingModal(croppedImage);
                 
             } catch (err) {
                 // If cropping fails, use original image
+                const cb = _cropOnConfirm;
+                const rid = cropRestaurantId;
+                const orig = cropOriginalImage;
                 closePhotoCropModal();
-                compressImage(cropOriginalImage, 800, 0.8, function(compressedImage) {
+                compressImage(orig, 800, 0.8, function(compressedImage) {
+                    if (cb) { cb(compressedImage); return; }
                     pendingPhotoData = compressedImage;
-                    pendingPhotoRestaurantId = cropRestaurantId;
+                    pendingPhotoRestaurantId = rid;
                     currentPhotoRating = 0;
                     showPhotoRatingModal(compressedImage);
                 });
