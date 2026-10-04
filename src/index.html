@@ -1007,15 +1007,6 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Price Range</label>
-                    <select id="price" required>
-                        <option value="1">€ - Budget (Under €15)</option>
-                        <option value="2">€€ - Moderate (€15-30)</option>
-                        <option value="3">€€€ - Upscale (€30-60)</option>
-                        <option value="4">€€€€ - Fine Dining (€60+)</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label>Payment</label>
                     <select id="payment" required>
                         <option value="both">💳 Card &amp; Cash</option>
@@ -1024,7 +1015,11 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>📍 Location</label>
+                    <label>� Comment</label>
+                    <textarea id="restaurantNotes" placeholder="Notes about this place..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>�📍 Location</label>
                     <div class="location-picker-btn" onclick="openLocationPicker()">
                         <span class="location-picker-icon">🗺️</span>
                         <span class="location-picker-text" id="locationText">Tap to select location on map</span>

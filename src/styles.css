@@ -3093,6 +3093,15 @@
             min-height: 100px;
         }
 
+        /* iOS date inputs have an intrinsic width and overflow the row without this. */
+        .form-group input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
+            min-width: 0;
+            min-height: 52px;
+        }
+
         .rating-group {
             display: grid;
             grid-template-columns: 1fr;

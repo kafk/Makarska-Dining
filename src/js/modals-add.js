@@ -48,8 +48,8 @@
             document.getElementById('name').value = r.name || '';
             catSelect.value = r.category || r.mainCategory || '';
             document.getElementById('cuisine').value = r.cuisine || 'Croatian';
-            document.getElementById('price').value = r.price || 1;
             document.getElementById('payment').value = r.payment || 'both';
+            document.getElementById('restaurantNotes').value = r.notes || '';
             document.getElementById('lat').value = r.lat;
             document.getElementById('lng').value = r.lng;
             document.getElementById('location').value = r.address || `${r.lat}, ${r.lng}`;
@@ -97,6 +97,33 @@
                     locationPickerMap.on('click', function(e) {
                         placeLocationMarker(e.latlng.lat, e.latlng.lng);
                     });
+
+                    // "Locate me" button (top-right) so users can center on their position.
+                    const PickerLocate = L.Control.extend({
+                        options: { position: 'topright' },
+                        onAdd: function () {
+                            const btn = L.DomUtil.create('button', 'locate-btn');
+                            btn.type = 'button';
+                            btn.title = 'Center on my location';
+                            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
+                            L.DomEvent.disableClickPropagation(btn);
+                            L.DomEvent.on(btn, 'click', function () {
+                                if (!('geolocation' in navigator)) { alert('Location is not available on this device or browser.'); return; }
+                                btn.classList.add('locating');
+                                navigator.geolocation.getCurrentPosition(function (pos) {
+                                    btn.classList.remove('locating');
+                                    locationPickerMap.setView([pos.coords.latitude, pos.coords.longitude], 17);
+                                }, function (err) {
+                                    btn.classList.remove('locating');
+                                    alert(err && err.code === 1
+                                        ? 'Location permission is blocked. Turn it on in Settings, then try again.'
+                                        : 'Could not get your location.');
+                                }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+                            });
+                            return btn;
+                        }
+                    });
+                    locationPickerMap.addControl(new PickerLocate());
                 } else {
                     locationPickerMap.invalidateSize();
                 }

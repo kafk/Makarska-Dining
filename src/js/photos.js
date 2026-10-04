@@ -11,8 +11,8 @@
 
             const nameValue = document.getElementById('name').value;
             const cuisineValue = document.getElementById('cuisine').value;
-            const priceValue = document.getElementById('price').value;
             const paymentValue = document.getElementById('payment').value;
+            const notesValue = (document.getElementById('restaurantNotes').value || '').trim();
             const categoryValue = document.getElementById('restaurantCategory').value;
 
             if (!nameValue || !nameValue.trim()) { alert('Please enter a restaurant name'); return; }
@@ -26,8 +26,8 @@
                     if (!r) return;
                     r.name = nameValue.trim();
                     r.cuisine = cuisineValue;
-                    r.price = parseInt(priceValue);
                     r.payment = paymentValue;
+                    r.notes = notesValue;
                     r.category = categoryValue;
                     r.mainCategory = categoryValue;
                     r.lat = parseFloat(document.getElementById('lat').value) || r.lat;
@@ -57,7 +57,7 @@
                     id: newId,
                     name: nameValue.trim(),
                     cuisine: cuisineValue,
-                    price: parseInt(priceValue),
+                    price: 0,
                     payment: paymentValue,
                     category: categoryValue,
                     mainCategory: categoryValue,
@@ -66,7 +66,7 @@
                     foodRating: 0,
                     serviceRating: 0,
                     visitDate: new Date().toISOString().split('T')[0],
-                    notes: '',
+                    notes: notesValue,
                     foodItems: [],
                     photos: [],
                     coverPhoto: coverUrl
@@ -99,9 +99,23 @@
             saveRestaurant(e);
         });
 
+        // Derive a 0–4 price level from the average cost of the restaurant's dishes.
+        function computeRestaurantPrice(restaurant) {
+            if (!restaurant || !restaurant.foodItems || !restaurant.foodItems.length) return 0;
+            const costs = restaurant.foodItems.map(f => {
+                const n = parseFloat(String(f.price || '').replace(/[^0-9.,]/g, '').replace(',', '.'));
+                return isNaN(n) ? null : n;
+            }).filter(n => n !== null);
+            if (!costs.length) return 0;
+            const avg = costs.reduce((a, b) => a + b, 0) / costs.length;
+            if (avg <= 15) return 1;
+            if (avg <= 30) return 2;
+            if (avg <= 60) return 3;
+            return 4;
+        }
+
         async function saveFoodItem(e) {
             if (e) e.preventDefault();
-            
             const restaurantId = parseInt(document.getElementById('foodRestaurant').value);
             const category = document.getElementById('foodCategory').value;
             const subcategory = document.getElementById('foodSubcategory').value;
@@ -171,6 +185,8 @@
                     restaurant.serviceRating = Math.round(allRatings.reduce((sum, f) => sum + f.serviceRating, 0) / allRatings.length);
                 }
                 restaurant.visitDate = foodItem.visitDate;
+                // Price range is derived from the average cost of the dishes, not entered manually.
+                restaurant.price = computeRestaurantPrice(restaurant);
                 
                 localStorage.setItem('restaurants', JSON.stringify(restaurants));
                 // Sync to Firestore

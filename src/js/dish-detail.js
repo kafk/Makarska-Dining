@@ -176,6 +176,7 @@
                 restaurant.foodRating = 0;
                 restaurant.serviceRating = 0;
             }
+            if (typeof computeRestaurantPrice === 'function') restaurant.price = computeRestaurantPrice(restaurant);
             localStorage.setItem('restaurants', JSON.stringify(restaurants));
             saveRestaurantToFirestore(restaurant);
             closeDishDetail();

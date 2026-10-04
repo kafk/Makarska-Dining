@@ -533,7 +533,7 @@
             sortedRestaurants.forEach(restaurant => {
                 const avgRating = ((restaurant.foodRating + restaurant.serviceRating) / 2).toFixed(1);
                 const stars = '★'.repeat(Math.round(avgRating));
-                const priceSymbol = '€'.repeat(restaurant.price);
+                const priceSymbol = restaurant.price ? '€'.repeat(restaurant.price) : '—';
                 
                 const cuisineEmoji = {
                     'Croatian': '🇭🇷',
@@ -584,7 +584,7 @@
             currentRestaurantId = id;
             
             const avgRating = ((restaurant.foodRating + restaurant.serviceRating) / 2).toFixed(1);
-            const priceSymbol = '€'.repeat(restaurant.price);
+            const priceSymbol = restaurant.price ? '€'.repeat(restaurant.price) : '—';
             
             // Get actual dishes added for this restaurant
             const restaurantDishes = restaurant.foodItems || [];
