@@ -13,6 +13,7 @@
             const cuisineValue = document.getElementById('cuisine').value;
             const paymentValue = document.getElementById('payment').value;
             const notesValue = (document.getElementById('restaurantNotes').value || '').trim();
+            const addressValue = (document.getElementById('restaurantAddress').value || '').trim();
             const categoryValue = document.getElementById('restaurantCategory').value;
 
             if (!nameValue || !nameValue.trim()) { alert('Please enter a restaurant name'); return; }
@@ -28,6 +29,7 @@
                     r.cuisine = cuisineValue;
                     r.payment = paymentValue;
                     r.notes = notesValue;
+                    r.address = addressValue;
                     r.category = categoryValue;
                     r.mainCategory = categoryValue;
                     r.lat = parseFloat(document.getElementById('lat').value) || r.lat;
@@ -59,6 +61,7 @@
                     cuisine: cuisineValue,
                     price: 0,
                     payment: paymentValue,
+                    address: addressValue,
                     category: categoryValue,
                     mainCategory: categoryValue,
                     lat: parseFloat(document.getElementById('lat').value) || 43.2964,

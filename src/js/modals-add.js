@@ -50,6 +50,7 @@
             document.getElementById('cuisine').value = r.cuisine || 'Croatian';
             document.getElementById('payment').value = r.payment || 'both';
             document.getElementById('restaurantNotes').value = r.notes || '';
+            document.getElementById('restaurantAddress').value = r.address || '';
             document.getElementById('lat').value = r.lat;
             document.getElementById('lng').value = r.lng;
             document.getElementById('location').value = r.address || `${r.lat}, ${r.lng}`;

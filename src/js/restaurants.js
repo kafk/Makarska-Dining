@@ -753,24 +753,9 @@
             
             document.getElementById('restaurantDetails').innerHTML = `
                 <div class="restaurant-info">
-                    <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                        <span class="info-label">📍 Adress</span>
-                        <input type="text" id="addressInput-${id}" value="${restaurant.address || ''}" 
-                            placeholder="Ange adress..." 
-                            style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;"
-                            onchange="updateAddress(${id}, this.value)">
-                        <div style="display: flex; width: 100%; gap: 8px; flex-wrap: wrap;">
-                            <button onclick="geocodeRestaurant(${id})" 
-                                id="geocodeBtn-${id}"
-                                style="flex: 1; min-width: 80px; padding: 10px 12px; background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;"
-                                title="Hitta på kartan från adress">
-                                🔍 Sök
-                            </button>
-                            <button onclick="editLocation(${id})" 
-                                style="flex: 1; min-width: 100px; padding: 10px 12px; background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                📍 Flytta pin
-                            </button>
-                        </div>
+                    <div class="info-row">
+                        <span class="info-label">📍 Address</span>
+                        <span class="info-value">${restaurant.address || '—'}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Cuisine</span>

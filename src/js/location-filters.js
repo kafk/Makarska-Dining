@@ -1,3 +1,27 @@
+        // Geocode the address typed in the Add/Edit restaurant form and set the pin coords.
+        async function geocodeFromForm() {
+            const addr = (document.getElementById('restaurantAddress').value || '').trim();
+            if (!addr) { alert('Enter an address first'); return; }
+            const btn = document.getElementById('geocodeFormBtn');
+            if (btn) { btn.textContent = '⏳ Searching…'; btn.disabled = true; }
+            const name = (document.getElementById('name').value || '').trim();
+            const coords = await geocodeAddress(addr, name);
+            if (coords) {
+                document.getElementById('lat').value = coords.lat;
+                document.getElementById('lng').value = coords.lng;
+                document.getElementById('location').value = addr;
+                const lt = document.getElementById('locationText');
+                if (lt) lt.textContent = addr;
+                const pickBtn = document.querySelector('.location-picker-btn');
+                if (pickBtn) pickBtn.classList.add('has-location');
+                if (typeof selectedLocation !== 'undefined') selectedLocation = { lat: coords.lat, lng: coords.lng };
+                if (btn) { btn.textContent = '✅ Found on map'; setTimeout(() => { btn.textContent = '🔍 Find on map from address'; btn.disabled = false; }, 1500); }
+            } else {
+                if (btn) { btn.textContent = '❌ Not found'; setTimeout(() => { btn.textContent = '🔍 Find on map from address'; btn.disabled = false; }, 1500); }
+                alert('Could not find that address. Add "Makarska" to it, or use the map picker below.');
+            }
+        }
+
         async function updateAddress(id, newAddress) {
             const restaurant = restaurants.find(r => r.id === id);
             if (restaurant) {
