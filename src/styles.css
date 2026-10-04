@@ -3806,8 +3806,34 @@
         .restaurant-detail-body,
         .dish-detail-content,
         .auth-screen {
-            padding-bottom: calc(30px + env(safe-area-inset-bottom)) !important;
+            padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
         }
+
+        /* Owner-only group visibility toggle */
+        .group-visibility {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #636e72;
+        }
+        .group-toggle { position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; }
+        .group-toggle input { opacity: 0; width: 0; height: 0; }
+        .group-toggle-slider {
+            position: absolute; inset: 0; cursor: pointer; background: #cfd4da;
+            border-radius: 26px; transition: 0.2s;
+        }
+        .group-toggle-slider::before {
+            content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px;
+            background: white; border-radius: 50%; transition: 0.2s;
+        }
+        .group-toggle input:checked + .group-toggle-slider { background: #27ae60; }
+        .group-toggle input:checked + .group-toggle-slider::before { transform: translateX(18px); }
 
         /* Position scale above bottom nav */
         .leaflet-control-scale {

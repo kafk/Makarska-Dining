@@ -220,6 +220,7 @@
                 places: 0,
                 ratings: 0,
                 createdAt: new Date().toISOString(),
+                visible: true,
                 ownerUid: auth.currentUser ? auth.currentUser.uid : null,
                 ownerName: auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email) : 'Unknown'
             };
@@ -237,6 +238,7 @@
                     ownerUid: newGroup.ownerUid,
                     ownerName: newGroup.ownerName,
                     createdAt: newGroup.createdAt,
+                    visible: true,
                     members: [newGroup.ownerUid]
                 });
                 console.log('✅ Group saved to Firestore:', inviteCode);
@@ -276,6 +278,12 @@
 
             if (!groupData) {
                 alert('Group not found. Please check the invite code and try again.');
+                return;
+            }
+
+            // Owner can hide a group from others.
+            if (groupData.visible === false && (!auth.currentUser || groupData.ownerUid !== auth.currentUser.uid)) {
+                alert('🔒 This group is private — the owner has hidden it. Ask them to make it visible.');
                 return;
             }
 
@@ -362,9 +370,29 @@
                             <div class="group-stat"><span class="group-stat-value">${group.places}</span> places</div>
                             <div class="group-stat"><span class="group-stat-value">${group.ratings}</span> ratings</div>
                         </div>
+                        ${(auth.currentUser && group.ownerUid === auth.currentUser.uid) ? `
+                        <div class="group-visibility" onclick="event.stopPropagation()">
+                            <span>${group.visible === false ? '🔒 Private (hidden from others)' : '👁️ Visible to others'}</span>
+                            <label class="group-toggle">
+                                <input type="checkbox" ${group.visible === false ? '' : 'checked'} onchange="toggleGroupVisibility('${group.inviteCode}', this.checked)">
+                                <span class="group-toggle-slider"></span>
+                            </label>
+                        </div>` : ''}
                     </div>
                 `;
             }).join('');
+        }
+
+        // Only the owner can change whether their group is discoverable/joinable by others.
+        async function toggleGroupVisibility(inviteCode, visible) {
+            const group = userGroups.find(g => g.inviteCode === inviteCode);
+            if (group) { group.visible = visible; saveGroups(); }
+            try {
+                await db.collection('groups').doc(inviteCode).update({ visible: visible });
+            } catch (e) {
+                console.warn('Could not update group visibility:', e.message);
+            }
+            renderGroupsList();
         }
 
         // Enter a specific group
